@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>CES Dashboard — Pesquisa CX Onboarding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#001897;
+    --panel-bg:#ffffff;
+    --text:#111827;
+    --muted:#6b7280;
+    --muted-strong:#4b5563;
+    --primary:#2563eb;
+    --primary-soft:#dbeafe;
+    --panel-border:#e5e7eb;
+    --gray-900:#111827;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    font-family:"Plus Jakarta Sans", system-ui, sans-serif;
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+  }
+  .page-header{ padding:2rem 2.5rem 0 2.5rem; color:#fff; }
+  .page-header-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap; }
+  .page-header-brand h1{
+    font-size:clamp(1.85rem, 4.5vw, 2.5rem);
+    font-weight:700; line-height:1.15; letter-spacing:-0.02em; margin:0 0 .35rem 0;
+  }
+  .page-header-sub{ font-size:.9rem; color:rgba(255,255,255,0.85); margin:0; }
+  .report-meta{ font-size:.8rem; color:rgba(255,255,255,0.65); margin-top:.6rem; }
+  .refresh-badge{
+    font-size:.75rem; color:rgba(255,255,255,0.85);
+    background:rgba(255,255,255,0.12); border-radius:20px;
+    padding:.4rem .85rem; white-space:nowrap;
+  }
+  .refresh-badge b{ color:#fff; }
+  .page-tabs{ display:flex; gap:.35rem; margin-top:1.5rem; }
+  .page-tabs button{
+    background:transparent; border:none; color:rgba(255,255,255,.75);
+    font-family:inherit; font-size:.95rem; font-weight:500;
+    padding:.6rem 1.2rem; border-radius:10px 10px 0 0; cursor:pointer;
+    transition:background .15s, color .15s;
+  }
+  .page-tabs button:hover:not(.active){ background:rgba(255,255,255,0.08); color:#fff; }
+  .page-tabs button.active{ background:#fff; color:var(--bg); font-weight:600; }
+  .page-content{ background:var(--panel-bg); border-radius:0 16px 16px 16px; padding:1.75rem 2.5rem 3rem; min-height:60vh; }
+  .view{ display:none; }
+  .view.active{ display:block; }
+  .dashboard-section-title{
+    font-size:1rem; font-weight:600; color:var(--text);
+    border-bottom:1px solid var(--panel-border); padding-bottom:.5rem; margin:2.5rem 0 1rem 0;
+  }
+  .dashboard-section-title:first-of-type{ margin-top:0; }
+  .helper-text{ font-size:.85rem; color:var(--muted); margin:-.4rem 0 1rem 0; }
+
+  /* Filtros Visão Geral */
+  .vg-filters{
+    display:flex; gap:.75rem; flex-wrap:wrap; align-items:center;
+    background:#fafbfc; border:1px solid var(--panel-border); border-radius:10px;
+    padding:.85rem 1rem; margin-bottom:1.5rem;
+  }
+  .vg-filters label{ font-size:.78rem; font-weight:600; color:var(--muted); margin-right:.35rem; }
+  .vg-filters select, .vg-filters input[type="text"]{
+    padding:.5rem .75rem; border:1px solid var(--panel-border); border-radius:8px;
+    font-family:inherit; font-size:.85rem; color:var(--text); background:#fff;
+  }
+  .vg-filters input[type="text"]{ min-width:220px; }
+  .vg-filters select:focus, .vg-filters input:focus{ outline:none; border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-soft); }
+  .vg-filters button{
+    border:1px solid var(--panel-border); background:#fff; color:var(--muted);
+    font-family:inherit; font-size:.8rem; font-weight:600; padding:.5rem .9rem;
+    border-radius:8px; cursor:pointer;
+  }
+  .vg-filters button:hover{ background:#f3f4f6; color:var(--text); }
+  .vg-filter-status{ font-size:.78rem; color:var(--primary); font-weight:600; }
+
+  /* Hero KPI cards */
+  .hero-kpi-grid{ display:grid; grid-template-columns:repeat(6,1fr); gap:.85rem; }
+  .hero-kpi-card{ background:#fff; border:1px solid var(--panel-border); border-radius:14px; box-shadow:0 1px 3px rgba(0,0,0,0.06); padding:.85rem 1rem; }
+  .hero-kpi-card-label{ font-size:.65rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:.4rem; }
+  .hero-kpi-card-value{ font-size:1.5rem; font-weight:700; line-height:1.2; color:var(--text); }
+  .hero-kpi-card-note{ font-size:.72rem; color:#9ca3af; margin-top:.35rem; line-height:1.3; }
+
+  /* Panels */
+  .panel{ background:#fff; border:1px solid var(--panel-border); border-radius:10px; padding:0; overflow:hidden; }
+  .panel-header{ display:flex; align-items:baseline; justify-content:space-between; padding:.85rem 1.1rem; border-bottom:1px solid var(--panel-border); background:#fafbfc; }
+  .panel-header h2{ font-size:1rem; font-weight:600; margin:0; color:var(--text); }
+  .panel-header span{ font-size:.78rem; color:var(--muted); }
+
+  table{ width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  th,td{ padding:.55rem .7rem; border-bottom:1px solid var(--panel-border); text-align:left; vertical-align:middle; }
+  thead th{ font-size:.78rem; font-weight:600; color:var(--gray-900); background:#fafbfc; }
+  .right-align{ text-align:right; }
+  tbody tr:last-child td{ border-bottom:none; }
+  .row-total td{ font-weight:700; border-top:1px solid #d1d5db; background:#f8f9fa; }
+  .kpi-num-dash{ color:var(--muted); }
+
+  .tier-badge{ display:inline-block; padding:.15rem .55rem; border-radius:20px; font-size:.72rem; font-weight:600; letter-spacing:.02em; white-space:nowrap; }
+  .tier-black{ background:#111827; color:#fff; }
+  .tier-gold{ background:#fef3c7; color:#92400e; }
+  .tier-platinum{ background:#e5e7eb; color:#374151; }
+  .tier-none{ background:#f3f4f6; color:var(--muted); }
+
+  .status-badge{ display:inline-block; padding:.15rem .55rem; border-radius:20px; font-size:.72rem; font-weight:600; }
+  .status-sim{ background:#d1fae5; color:#065f46; }
+  .status-nao{ background:#f3f4f6; color:var(--muted); }
+  .status-futuro{ background:#fef3c7; color:#92400e; }
+
+  .heatmap-wrap{ overflow-x:auto; }
+  .heatmap-table th, .heatmap-table td{ text-align:center; }
+  .heatmap-table th:first-child, .heatmap-table td:first-child{ text-align:left; }
+  .heat-cell{ font-weight:600; font-size:.85rem; border-radius:6px; padding:.5rem .4rem; }
+  .heat-pct{ display:block; font-size:.68rem; font-weight:400; opacity:.75; margin-top:.1rem; }
+
+  .grid-2{ display:grid; grid-template-columns:1.3fr 1fr; gap:1.25rem; align-items:start; }
+
+  .bar-track{ background:#f3f4f6; border-radius:6px; height:8px; width:100%; overflow:hidden; margin-top:.35rem; }
+  .bar-fill{ height:100%; background:var(--primary); border-radius:6px; }
+
+  .month-avg-row{ display:flex; align-items:center; gap:.75rem; padding:.5rem 0; border-bottom:1px solid var(--panel-border); }
+  .month-avg-row:last-child{ border-bottom:none; }
+  .month-avg-label{ width:70px; font-size:.82rem; font-weight:600; color:var(--text); flex-shrink:0; }
+  .month-avg-value{ width:44px; text-align:right; font-size:.82rem; font-weight:700; color:var(--text); flex-shrink:0; }
+  .month-avg-bar{ flex:1; }
+
+  .footnote{ font-size:.75rem; color:var(--muted); margin-top:1.5rem; line-height:1.5; }
+  .empty-state{ text-align:center; color:var(--muted); padding:2rem; font-size:.85rem; }
+
+  /* Consulta tab */
+  .consulta-filters{ display:flex; gap:.75rem; margin-bottom:1.1rem; flex-wrap:wrap; }
+  .consulta-filters input[type="text"]{ flex:1; min-width:220px; padding:.55rem .8rem; border:1px solid var(--panel-border); border-radius:8px; font-family:inherit; font-size:.88rem; color:var(--text); }
+  .consulta-filters select{ padding:.55rem .8rem; border:1px solid var(--panel-border); border-radius:8px; font-family:inherit; font-size:.88rem; color:var(--text); background:#fff; }
+  .consulta-filters input:focus, .consulta-filters select:focus{ outline:none; border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-soft); }
+  .consulta-count{ font-size:.8rem; color:var(--muted); margin-bottom:.75rem; }
+  .consulta-table-wrap{ max-height:65vh; overflow:auto; border:1px solid var(--panel-border); border-radius:10px; }
+  .consulta-table-wrap table{ width:100%; }
+  .consulta-table-wrap thead th{ position:sticky; top:0; z-index:2; background:#fafbfc; box-shadow:0 2px 4px rgba(0,0,0,0.06); }
+  .consulta-table-wrap td, .consulta-table-wrap th{ font-size:.8rem; }
+  .comentario-cell{ color:var(--muted-strong); max-width:280px; }
+  .no-results{ text-align:center; color:var(--muted); padding:2rem; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-header-top">
+    <div class="page-header-brand">
+      <h1>CES — Customer Effort Score</h1>
+      <p class="page-header-sub">Pesquisa de esforço do cliente · Onboarding CX Brasil</p>
+      <p class="report-meta">Fonte: aba "Resumo por Negócio v2" · NE - Feedback Submissions CX</p>
+    </div>
+    <div class="refresh-badge" id="refresh-badge">Carregando dados...</div>
+  </div>
+  <div class="page-tabs">
+    <button class="active" data-view="geral" onclick="switchTab('geral')">Visão Geral</button>
+    <button data-view="consulta" onclick="switchTab('consulta')">Consulta por Cliente</button>
+  </div>
+</div>
+
+<div class="page-content">
+
+  <!-- ================= VISÃO GERAL ================= -->
+  <div class="view active" id="view-geral">
+
+    <div class="dashboard-section-title" style="margin-top:0;">Visão Geral</div>
+    <p class="helper-text">Uma resposta por negócio: quem respondeu pelos dois canais é contado uma única vez. Elegíveis considera só quem já recebeu a pesquisa até hoje.</p>
+
+    <div class="vg-filters">
+      <div>
+        <label for="vg-filtro-mes">Mês</label>
+        <select id="vg-filtro-mes" onchange="renderGeral()">
+          <option value="">Todos os meses</option>
+        </select>
+      </div>
+      <div>
+        <label for="vg-filtro-negocio">Negócio</label>
+        <input type="text" id="vg-filtro-negocio" list="vg-negocios-list" placeholder="Todos os negócios..." oninput="renderGeral()">
+        <datalist id="vg-negocios-list"></datalist>
+      </div>
+      <button type="button" onclick="limparFiltrosGeral()">Limpar filtros</button>
+      <span class="vg-filter-status" id="vg-filter-status"></span>
+    </div>
+
+    <div class="hero-kpi-grid" id="hero-kpi-grid"></div>
+
+    <div class="dashboard-section-title">Encaminhamento, Elegibilidade e Respostas por Mês</div>
+    <p class="helper-text" id="funil-helper"></p>
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Funil mensal — CES Onboarding</h2>
+        <span id="funil-periodo"></span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Mês elegível</th>
+            <th class="right-align">Encaminhados / Elegíveis</th>
+            <th class="right-align">Respostas Formulário</th>
+            <th class="right-align">Respostas WhatsApp</th>
+            <th class="right-align">Respostas Únicas</th>
+            <th class="right-align">Taxa de Resposta</th>
+          </tr>
+        </thead>
+        <tbody id="funil-body"></tbody>
+      </table>
+    </div>
+
+    <div class="dashboard-section-title">Mapa de Calor — Distribuição das Respostas CES</div>
+    <p class="helper-text">Contagem de respostas por dimensão do onboarding. "Rotina" é a única pergunta feita via WhatsApp/Treble, por isso concentra mais respostas.</p>
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Respostas por dimensão e nível de esforço</h2>
+        <span id="heatmap-periodo"></span>
+      </div>
+      <div class="heatmap-wrap">
+      <table class="heatmap-table">
+        <thead>
+          <tr>
+            <th>Dimensão</th>
+            <th>Very Difficult</th>
+            <th>Difficult</th>
+            <th>Neutral</th>
+            <th>Easy</th>
+            <th>Very Easy</th>
+            <th class="right-align">Base</th>
+          </tr>
+        </thead>
+        <tbody id="heatmap-body"></tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="dashboard-section-title">Respostas por Tier</div>
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Volume e taxa de resposta por Tier</h2>
+        <span id="tier-periodo"></span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Tier</th>
+            <th class="right-align">Elegíveis</th>
+            <th class="right-align">Respostas</th>
+            <th class="right-align">Taxa de Resposta</th>
+            <th class="right-align">Média CES</th>
+          </tr>
+        </thead>
+        <tbody id="tier-body"></tbody>
+      </table>
+    </div>
+
+    <div class="dashboard-section-title">Média de Resposta (CES Score)</div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Média CES por mês de resposta</h2>
+          <span>Escala 1–5</span>
+        </div>
+        <div style="padding:1rem 1.1rem;" id="media-mes-body"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Média CES por canal</h2>
+          <span>Formulário vs. WhatsApp</span>
+        </div>
+        <div style="padding:1rem 1.1rem;" id="media-canal-body"></div>
+        <div class="footnote" style="padding:0 1.1rem 1rem;">Médias por canal calculadas sobre todas as respostas daquele canal (não deduplicadas), já que um mesmo negócio pode aparecer nos dois.</div>
+      </div>
+    </div>
+
+    <p class="footnote" id="metodologia-footnote"></p>
+  </div>
+
+  <!-- ================= CONSULTA POR CLIENTE ================= -->
+  <div class="view" id="view-consulta">
+    <div class="dashboard-section-title" style="margin-top:0;">Consulta por Cliente</div>
+    <p class="helper-text" id="consulta-helper"></p>
+
+    <div class="consulta-filters">
+      <input type="text" id="filtro-busca" placeholder="Buscar por negócio..." oninput="renderConsulta()">
+      <select id="filtro-mes" onchange="renderConsulta()">
+        <option value="">Todos os meses</option>
+      </select>
+      <select id="filtro-status" onchange="renderConsulta()">
+        <option value="">Todos os status</option>
+        <option value="sim">Respondeu</option>
+        <option value="nao">Não respondeu (já elegível)</option>
+        <option value="futuro">Aguardando envio</option>
+      </select>
+    </div>
+
+    <div class="consulta-count" id="consulta-count"></div>
+
+    <div class="consulta-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Negócio</th>
+            <th>Tier</th>
+            <th>Mês Elegível</th>
+            <th>Respondeu?</th>
+            <th>Canal</th>
+            <th>Mês Resposta</th>
+            <th class="right-align">Média CES</th>
+            <th>Comentário</th>
+          </tr>
+        </thead>
+        <tbody id="consulta-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ---------- Dataset embutido (gerado por build_ces_dataset.py) ----------
+const CES_DATASET = {"generatedAt": "2026-07-27T14:35:21.658929Z", "sourceFile": "ces_fresh.xlsx", "rows": [{"negocio": "BF Bella fitness", "tier": "Platinum", "dataEnvio": "2026-04-01", "dataElegivel": "2026-04-01", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Casa Útil", "tier": "Black", "dataEnvio": "2026-04-01", "dataElegivel": "2026-04-01", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "boutiqlabella", "tier": "Gold", "dataEnvio": "2026-04-01", "dataElegivel": "2026-04-01", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "susanafujita", "tier": "Black", "dataEnvio": "2026-04-01", "dataElegivel": "2026-04-01", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "My Basic", "tier": "Gold", "dataEnvio": "2026-04-01", "dataElegivel": "2026-04-01", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Neeche House", "tier": "Platinum", "dataEnvio": "2026-04-01", "dataElegivel": "2026-04-01", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "JustBriv", "tier": "Gold", "dataEnvio": "2026-04-02", "dataElegivel": "2026-04-02", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Ma Belle", "tier": "Gold", "dataEnvio": "2026-04-02", "dataElegivel": "2026-04-02", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Ceramicando", "tier": "Gold", "dataEnvio": "2026-04-02", "dataElegivel": "2026-04-02", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "GR Brás", "tier": "Black", "dataEnvio": "2026-04-02", "dataElegivel": "2026-04-02", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Ello Moda", "tier": "Gold", "dataEnvio": "2026-04-03", "dataElegivel": "2026-04-03", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Wtime Acessórios", "tier": "Black", "dataEnvio": "2026-04-03", "dataElegivel": "2026-04-03", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Café Ponta da Serra", "tier": "Black", "dataEnvio": "2026-04-03", "dataElegivel": "2026-04-03", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Tricky", "tier": "Gold", "dataEnvio": "2026-04-03", "dataElegivel": "2026-04-03", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "sunfoodevolution", "tier": "Gold", "dataEnvio": "2026-04-03", "dataElegivel": "2026-04-03", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Geniali Aviamentos", "tier": "Gold", "dataEnvio": "2026-04-06", "dataElegivel": "2026-04-06", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Voturuna Life Park", "tier": "Gold", "dataEnvio": "2026-04-07", "dataElegivel": "2026-04-07", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Tão Feminino", "tier": "Black", "dataEnvio": "2026-04-07", "dataElegivel": "2026-04-07", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Nuch", "tier": "Gold", "dataEnvio": "2026-04-08", "dataElegivel": "2026-04-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "abatextil", "tier": "Gold", "dataEnvio": "2026-04-08", "dataElegivel": "2026-04-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Expressio Store", "tier": "Black", "dataEnvio": "2026-04-08", "dataElegivel": "2026-04-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Mafe", "tier": "Gold", "dataEnvio": "2026-04-08", "dataElegivel": "2026-04-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "A Confiteria", "tier": "Platinum", "dataEnvio": "2026-04-08", "dataElegivel": "2026-04-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Dope", "tier": "Platinum", "dataEnvio": "2026-04-09", "dataElegivel": "2026-04-09", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Ane Jeans", "tier": "Black", "dataEnvio": "2026-04-09", "dataElegivel": "2026-04-09", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Maum", "tier": "Gold", "dataEnvio": "2026-04-09", "dataElegivel": "2026-04-09", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Lilly Sarti", "tier": "Gold", "dataEnvio": "2026-04-10", "dataElegivel": "2026-04-10", "respForm": true, "dataForm": "2026-04-09", "respWpp": false, "dataWpp": null, "mesResposta": 4, "mediaForm": 4.2, "mediaWpp": null, "q1": "Easy", "q2": "Easy", "q3": "Easy", "q4": "Very Easy", "q5": "Easy", "comentario": null}, {"negocio": "Shotly Official", "tier": "Gold", "dataEnvio": "2026-04-10", "dataElegivel": "2026-04-10", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "SYOS", "tier": "Gold", "dataEnvio": "2026-04-10", "dataElegivel": "2026-04-10", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Pura Bio (Fontes Log)", "tier": "Gold", "dataEnvio": "2026-04-10", "dataElegivel": "2026-04-10", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Kroya Importadora", "tier": "Platinum", "dataEnvio": "2026-04-13", "dataElegivel": "2026-04-13", "respForm": true, "dataForm": "2026-04-23", "respWpp": false, "dataWpp": null, "mesResposta": 4, "mediaForm": 4.4, "mediaWpp": null, "q1": "Very Easy", "q2": "Easy", "q3": "Very Easy", "q4": "Neutral", "q5": "Very Easy", "comentario": "Até o momento estou bem satisfeito com todo o trabalho, estrutura e as pessoas envolvidas na operação. Expectativa alcançada."}, {"negocio": "IMPORTS HL", "tier": "Gold", "dataEnvio": "2026-04-13", "dataElegivel": "2026-04-13", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Maria Vai Com A Moda", "tier": "Gold", "dataEnvio": "2026-04-13", "dataElegivel": "2026-04-13", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Oceà", "tier": "Black", "dataEnvio": "2026-04-14", "dataElegivel": "2026-04-14", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "sick", "tier": "Gold", "dataEnvio": "2026-04-14", "dataElegivel": "2026-04-14", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Prussia Bier", "tier": "Platinum", "dataEnvio": "2026-04-15", "dataElegivel": "2026-04-15", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Mundo LPS", "tier": "Gold", "dataEnvio": "2026-04-15", "dataElegivel": "2026-04-15", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Bendizê", "tier": "Black", "dataEnvio": "2026-04-15", "dataElegivel": "2026-04-15", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Fixar Perfumes", "tier": "Gold", "dataEnvio": "2026-04-15", "dataElegivel": "2026-04-15", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "TBF Suplementos + CtrlMind", "tier": "Gold", "dataEnvio": "2026-04-16", "dataElegivel": "2026-04-16", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "adds", "tier": "Gold", "dataEnvio": "2026-04-16", "dataElegivel": "2026-04-16", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "quokkashoes", "tier": "Platinum", "dataEnvio": "2026-04-16", "dataElegivel": "2026-04-16", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Laszlo", "tier": "Platinum", "dataEnvio": "2026-04-16", "dataElegivel": "2026-04-16", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Ametta", "tier": "Gold", "dataEnvio": "2026-04-17", "dataElegivel": "2026-04-17", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Fiore Moda Ã_x008d_ntima", "tier": "Black", "dataEnvio": "2026-04-17", "dataElegivel": "2026-04-17", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Calçados Império 007", "tier": "Black", "dataEnvio": "2026-04-17", "dataElegivel": "2026-04-17", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Dom Perfumes", "tier": "Platinum", "dataEnvio": "2026-04-20", "dataElegivel": "2026-04-20", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "kupaasports2", "tier": "Platinum", "dataEnvio": "2026-04-22", "dataElegivel": "2026-04-22", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Tangle Teezer Brasil", "tier": "Platinum", "dataEnvio": "2026-04-22", "dataElegivel": "2026-04-22", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Heatz Oficial", "tier": "Platinum", "dataEnvio": "2026-04-22", "dataElegivel": "2026-04-22", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Vitalin Sem Glúten", "tier": "Gold", "dataEnvio": "2026-04-22", "dataElegivel": "2026-04-22", "respForm": true, "dataForm": "2026-04-29", "respWpp": false, "dataWpp": null, "mesResposta": 5, "mediaForm": 4.8, "mediaWpp": null, "q1": "Easy", "q2": "Very Easy", "q3": "Very Easy", "q4": "Very Easy", "q5": "Very Easy", "comentario": "Acho que a parte de atendimentos dentro da plataforma poderia ser mais rapido, fora isso eu acho excelente."}, {"negocio": "casa limpa", "tier": "Platinum", "dataEnvio": "2026-04-22", "dataElegivel": "2026-04-22", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Mundo Vinyl", "tier": "Gold", "dataEnvio": "2026-04-22", "dataElegivel": "2026-04-22", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "In'Life", "tier": "Gold", "dataEnvio": "2026-04-23", "dataElegivel": "2026-04-23", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "kupaasports2", "tier": "Platinum", "dataEnvio": "2026-04-23", "dataElegivel": "2026-04-23", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "amferramentas", "tier": "Black", "dataEnvio": "2026-04-24", "dataElegivel": "2026-04-24", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "TBF Suplementos + CtrlMind", "tier": "Gold", "dataEnvio": "2026-04-24", "dataElegivel": "2026-04-24", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Espasso Bela", "tier": "Gold", "dataEnvio": "2026-04-24", "dataElegivel": "2026-04-24", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Beleza Unika", "tier": "Gold", "dataEnvio": "2026-04-24", "dataElegivel": "2026-04-24", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Leflu", "tier": "Gold", "dataEnvio": "2026-04-24", "dataElegivel": "2026-04-24", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Dermo Diet ", "tier": "Black", "dataEnvio": "2026-04-24", "dataElegivel": "2026-04-24", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Kandy Brasil", "tier": "Gold", "dataEnvio": "2026-04-24", "dataElegivel": "2026-04-24", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Dropit", "tier": "Gold", "dataEnvio": "2026-04-24", "dataElegivel": "2026-04-24", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Ana Mello", "tier": "Platinum", "dataEnvio": "2026-04-27", "dataElegivel": "2026-04-27", "respForm": true, "dataForm": "2026-04-29", "respWpp": false, "dataWpp": null, "mesResposta": 5, "mediaForm": 5, "mediaWpp": null, "q1": "Very Easy", "q2": "Very Easy", "q3": "Very Easy", "q4": "Very Easy", "q5": "Very Easy", "comentario": "Ter opção de incluir feriados nas cotações."}, {"negocio": "Down Company", "tier": "Gold", "dataEnvio": "2026-04-27", "dataElegivel": "2026-04-27", "respForm": true, "dataForm": "2026-04-30", "respWpp": false, "dataWpp": null, "mesResposta": 5, "mediaForm": 4.2, "mediaWpp": null, "q1": "Easy", "q2": "Easy", "q3": "Very Easy", "q4": "Easy", "q5": "Easy", "comentario": "Pelo tempo que estamos usando está tudo ok, dentro do esperado. Serviço bom, atendimento agil."}, {"negocio": "Linda de Morrer", "tier": "Gold", "dataEnvio": "2026-04-27", "dataElegivel": "2026-04-27", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Fortier", "tier": "Gold", "dataEnvio": "2026-04-27", "dataElegivel": "2026-04-27", "respForm": true, "dataForm": "2026-04-29", "respWpp": false, "dataWpp": null, "mesResposta": 5, "mediaForm": 4.4, "mediaWpp": null, "q1": "Difficult", "q2": "Very Easy", "q3": "Very Easy", "q4": "Very Easy", "q5": "Very Easy", "comentario": "Somente a parte de contratação mesmo, a comunicação as vezes era demorada, o que levou a meses para que eu finalizasse o processo."}, {"negocio": "Carol Viana", "tier": "Gold", "dataEnvio": "2026-04-28", "dataElegivel": "2026-04-28", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Paris Essências", "tier": "Black", "dataEnvio": "2026-04-29", "dataElegivel": "2026-04-29", "respForm": true, "dataForm": "2026-04-27", "respWpp": false, "dataWpp": null, "mesResposta": 4, "mediaForm": 4.4, "mediaWpp": null, "q1": "Easy", "q2": "Easy", "q3": "Very Easy", "q4": "Very Easy", "q5": "Easy", "comentario": "De modo geral, o atendimento e os processos têm funcionado bem, porém identificamos um ponto de atenção que precisa ser ajustado.\n\nTemos recebido recorrentes reclamações de clientes informando que os entregadores não estão localizando os endereços de entrega, mesmo quando os dados fornecidos estã..."}, {"negocio": "Boaz True Beauty", "tier": "Gold", "dataEnvio": "2026-04-29", "dataElegivel": "2026-04-29", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "cathybeauty", "tier": "Gold", "dataEnvio": "2026-04-30", "dataElegivel": "2026-04-30", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Super Vegan", "tier": "Gold", "dataEnvio": "2026-04-30", "dataElegivel": "2026-04-30", "respForm": true, "dataForm": "2026-05-04", "respWpp": false, "dataWpp": null, "mesResposta": 5, "mediaForm": 3.4, "mediaWpp": null, "q1": "Easy", "q2": "Easy", "q3": "Easy", "q4": "Easy", "q5": "Very Difficult", "comentario": "Estou tendo migrar para a utilização apenas da mandae, mas não consigo, pq o melhor envio continua com prazo bem menor e os clientes preferem pagar 1 ou 2 reais a mais e ter prazo muito menor, e também para vários ceps os valores estão mais em conta, já pedi no grupo da mandae ajuda mas sem suces..."}, {"negocio": "Central Nutrition", "tier": "Gold", "dataEnvio": "2026-04-30", "dataElegivel": "2026-04-30", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "dona do doce", "tier": "Gold", "dataEnvio": "2026-04-30", "dataElegivel": "2026-04-30", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Biossegurança Sem Stress", "tier": "Platinum", "dataEnvio": "2026-04-30", "dataElegivel": "2026-04-30", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Editora Vida", "tier": "Platinum", "dataEnvio": "2026-04-30", "dataElegivel": "2026-04-30", "respForm": true, "dataForm": "2026-05-06", "respWpp": false, "dataWpp": null, "mesResposta": 5, "mediaForm": 3.8, "mediaWpp": null, "q1": "Neutral", "q2": "Neutral", "q3": "Very Easy", "q4": "Easy", "q5": "Easy", "comentario": null}, {"negocio": "Loja Sementes das Estrelas", "tier": "Gold", "dataEnvio": "2026-05-01", "dataElegivel": "2026-05-01", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Beaty Outlet", "tier": "Platinum", "dataEnvio": "2026-05-01", "dataElegivel": "2026-05-01", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Sonho de Deus", "tier": "Platinum", "dataEnvio": "2026-05-01", "dataElegivel": "2026-05-01", "respForm": true, "dataForm": "2026-04-29", "respWpp": false, "dataWpp": null, "mesResposta": 5, "mediaForm": 4, "mediaWpp": null, "q1": "Easy", "q2": "Easy", "q3": "Easy", "q4": "Easy", "q5": "Easy", "comentario": "Até o presente momento tudo perfeito"}, {"negocio": "Any Any", "tier": "Gold", "dataEnvio": "2026-05-01", "dataElegivel": "2026-05-01", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "IWILL BRASIL", "tier": "Platinum", "dataEnvio": "2026-05-01", "dataElegivel": "2026-05-01", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "1401 Chá", "tier": "Gold", "dataEnvio": "2026-05-04", "dataElegivel": "2026-05-04", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "RICHARD MOTO CAPAS LTDA", "tier": "Platinum", "dataEnvio": "2026-05-04", "dataElegivel": "2026-05-04", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Eleve Suplementos", "tier": "Gold", "dataEnvio": "2026-05-04", "dataElegivel": "2026-05-04", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "drfmloja", "tier": "Gold", "dataEnvio": "2026-05-05", "dataElegivel": "2026-05-05", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Joy.a Clean Beauty", "tier": "Gold", "dataEnvio": "2026-05-05", "dataElegivel": "2026-05-05", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "BRECHIC BOUTIQUE LTDA", "tier": "Gold", "dataEnvio": "2026-05-05", "dataElegivel": "2026-05-05", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Naked Nuts", "tier": "Platinum", "dataEnvio": "2026-05-05", "dataElegivel": "2026-05-05", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Sabrina Brito Lingerie", "tier": "Platinum", "dataEnvio": "2026-05-05", "dataElegivel": "2026-05-05", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Sabarabuçu", "tier": "Platinum", "dataEnvio": "2026-05-06", "dataElegivel": "2026-05-06", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Vm Fashion Store", "tier": "Gold", "dataEnvio": "2026-05-06", "dataElegivel": "2026-05-06", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "IOLLAWEAR", "tier": "Platinum", "dataEnvio": "2026-05-06", "dataElegivel": "2026-05-06", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "lavinnystore", "tier": "Gold", "dataEnvio": "2026-05-08", "dataElegivel": "2026-05-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "[NE] Aromas Felizes", "tier": "Gold", "dataEnvio": "2026-05-08", "dataElegivel": "2026-05-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "KLYPO", "tier": "Gold", "dataEnvio": "2026-05-08", "dataElegivel": "2026-05-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Lm Fashion Lab", "tier": "Black", "dataEnvio": "2026-05-08", "dataElegivel": "2026-05-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Tutuia", "tier": "Gold", "dataEnvio": "2026-05-08", "dataElegivel": "2026-05-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Patta Club", "tier": "Gold", "dataEnvio": "2026-05-08", "dataElegivel": "2026-05-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Casa Útil", "tier": "Platinum", "dataEnvio": "2026-05-11", "dataElegivel": "2026-05-11", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Meias São Jorge", "tier": "Platinum", "dataEnvio": "2026-05-11", "dataElegivel": "2026-05-11", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Habibah", "tier": "Gold", "dataEnvio": "2026-05-11", "dataElegivel": "2026-05-11", "respForm": true, "dataForm": "2026-05-19", "respWpp": false, "dataWpp": null, "mesResposta": 5, "mediaForm": 4, "mediaWpp": null, "q1": "Easy", "q2": "Easy", "q3": "Easy", "q4": "Easy", "q5": null, "comentario": "Melhorar a efetivação das entregas em si, tecnologia funcionando, a entrega deixa a desejar."}, {"negocio": "O MUNDO DELAS LINGERIE LTDA", "tier": "Platinum", "dataEnvio": "2026-05-11", "dataElegivel": "2026-05-11", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Garota Dorminhoca", "tier": "Gold", "dataEnvio": "2026-05-12", "dataElegivel": "2026-05-12", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Origem Verde", "tier": "Black", "dataEnvio": "2026-05-12", "dataElegivel": "2026-05-12", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Glowden", "tier": "Platinum", "dataEnvio": "2026-05-12", "dataElegivel": "2026-05-12", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "KG Sorensen", "tier": "Gold", "dataEnvio": "2026-05-12", "dataElegivel": "2026-05-12", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Kari Brand", "tier": "Platinum", "dataEnvio": "2026-05-13", "dataElegivel": "2026-05-13", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Nobrand", "tier": "Gold", "dataEnvio": "2026-05-13", "dataElegivel": "2026-05-13", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Tecnocubo - Directa Log", "tier": "Platinum", "dataEnvio": "2026-05-13", "dataElegivel": "2026-05-13", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-05-29", "mesResposta": 6, "mediaForm": null, "mediaWpp": 4, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Easy", "comentario": null}, {"negocio": "Panobianco", "tier": "Gold", "dataEnvio": "2026-05-13", "dataElegivel": "2026-05-13", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Futuraim", "tier": "Black", "dataEnvio": "2026-05-13", "dataElegivel": "2026-05-13", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Zyla", "tier": "Gold", "dataEnvio": "2026-05-13", "dataElegivel": "2026-05-13", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Lelê Crochê", "tier": "Gold", "dataEnvio": "2026-05-14", "dataElegivel": "2026-05-14", "respForm": true, "dataForm": "2026-05-14", "respWpp": true, "dataWpp": "2026-05-29", "mesResposta": 5, "mediaForm": 4.5, "mediaWpp": 4, "q1": "Very Easy", "q2": "Very Easy", "q3": "Very Easy", "q4": "Neutral", "q5": "Easy", "comentario": "Os preços estão acessíveis mas o prazo está muito longo, mesmo que chega antes na maioria das vezes mas o que apresenta para a pessoa na hora da comprar faz ela tomar a decisão se escolhe a Mandaê ou não, e o prazo faz bastante diferença."}, {"negocio": "[NE ] Gula Fit (K Log)", "tier": "Gold", "dataEnvio": "2026-05-14", "dataElegivel": "2026-05-14", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Fazz Up", "tier": "Gold", "dataEnvio": "2026-05-14", "dataElegivel": "2026-05-14", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "rsmed", "tier": "Gold", "dataEnvio": "2026-05-15", "dataElegivel": "2026-05-15", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Hsmerch", "tier": "Gold", "dataEnvio": "2026-05-15", "dataElegivel": "2026-05-15", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Zeca Box", "tier": "Gold", "dataEnvio": "2026-05-18", "dataElegivel": "2026-05-18", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Lissé Professional [Do Lado]", "tier": "Gold", "dataEnvio": "2026-05-18", "dataElegivel": "2026-05-18", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Izyncor", "tier": "Platinum", "dataEnvio": "2026-05-18", "dataElegivel": "2026-05-18", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Casa dos Decants", "tier": "Platinum", "dataEnvio": "2026-05-18", "dataElegivel": "2026-05-18", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Fornitura Virtual", "tier": "Platinum", "dataEnvio": "2026-05-20", "dataElegivel": "2026-05-20", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Grupo Orgânica", "tier": "Platinum", "dataEnvio": "2026-05-20", "dataElegivel": "2026-05-20", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "alelualoja", "tier": "Gold", "dataEnvio": "2026-05-21", "dataElegivel": "2026-05-21", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "NX", "tier": "Platinum", "dataEnvio": "2026-05-21", "dataElegivel": "2026-05-21", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Other Girls", "tier": "Platinum", "dataEnvio": "2026-05-21", "dataElegivel": "2026-05-21", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Yunik Pro", "tier": "Gold", "dataEnvio": "2026-05-21", "dataElegivel": "2026-05-21", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "diborella", "tier": "Platinum", "dataEnvio": "2026-05-21", "dataElegivel": "2026-05-21", "respForm": true, "dataForm": "2026-05-21", "respWpp": true, "dataWpp": "2026-05-29", "mesResposta": 5, "mediaForm": 4.5, "mediaWpp": 5, "q1": "Very Easy", "q2": "Easy", "q3": "Easy", "q4": "Very Easy", "q5": "Very Easy", "comentario": "Inicialmente, havia uma falha na emissão das etiquetas via ERP, atualizando o status do pedido como enviado imediatamente após a emissão. Felizmente isso foi corrigido! Sistema todo muito funcional. Avaliaria a possibilidade de implementação de scanner durante a coleta para atualização do status ..."}, {"negocio": "Pepita", "tier": "Platinum", "dataEnvio": "2026-05-21", "dataElegivel": "2026-05-21", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-05-29", "mesResposta": 6, "mediaForm": null, "mediaWpp": 3, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Neutral", "comentario": null}, {"negocio": "Party Games", "tier": "Platinum", "dataEnvio": "2026-05-21", "dataElegivel": "2026-05-21", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Unique Chic", "tier": "Black", "dataEnvio": "2026-05-21", "dataElegivel": "2026-05-21", "respForm": true, "dataForm": "2026-05-25", "respWpp": false, "dataWpp": null, "mesResposta": 5, "mediaForm": 3.25, "mediaWpp": null, "q1": "Easy", "q2": "Easy", "q3": "Easy", "q4": "Very Difficult", "q5": null, "comentario": "Na vdd o que é difícil não é a parte operacional e sim a gestão de problemas por parte de vcs, não temos um retorno quando necessário e se precisarmos juntar documentação é mais difícil ainda."}, {"negocio": "Cheiro de Rica", "tier": "Platinum", "dataEnvio": "2026-05-21", "dataElegivel": "2026-05-21", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "preservestreetwear2024", "tier": "Gold", "dataEnvio": "2026-05-22", "dataElegivel": "2026-05-22", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Montreal Magazine", "tier": "Gold", "dataEnvio": "2026-05-22", "dataElegivel": "2026-05-22", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-05-29", "mesResposta": 6, "mediaForm": null, "mediaWpp": 3, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Neutral", "comentario": null}, {"negocio": "Oficina dos Carimbos", "tier": "Gold", "dataEnvio": "2026-05-22", "dataElegivel": "2026-05-22", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-05-29", "mesResposta": 6, "mediaForm": null, "mediaWpp": 3, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Neutral", "comentario": null}, {"negocio": "minidini", "tier": "Platinum", "dataEnvio": "2026-05-22", "dataElegivel": "2026-05-22", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "kashmir", "tier": "Gold", "dataEnvio": "2026-05-22", "dataElegivel": "2026-05-22", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Mysli", "tier": "Gold", "dataEnvio": "2026-05-22", "dataElegivel": "2026-05-22", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "constamed", "tier": "Gold", "dataEnvio": "2026-05-22", "dataElegivel": "2026-05-22", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "MERCAZZO COMERCIO VAREJISTA LTDA.", "tier": "Black", "dataEnvio": "2026-05-25", "dataElegivel": "2026-05-25", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-05-29", "mesResposta": 6, "mediaForm": null, "mediaWpp": 4, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Easy", "comentario": null}, {"negocio": "Liftify", "tier": "Gold", "dataEnvio": "2026-05-25", "dataElegivel": "2026-05-25", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Amo Ler", "tier": "Black", "dataEnvio": "2026-05-25", "dataElegivel": "2026-05-25", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "superhot", "tier": "Platinum", "dataEnvio": "2026-05-26", "dataElegivel": "2026-05-26", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Charm Decants", "tier": "Black", "dataEnvio": "2026-05-26", "dataElegivel": "2026-05-26", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Jardim Brasil Dermocosmeticos", "tier": "Gold", "dataEnvio": "2026-05-26", "dataElegivel": "2026-05-26", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Alto Calçados", "tier": "Black", "dataEnvio": "2026-05-26", "dataElegivel": "2026-05-26", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Anomalia Distro", "tier": "Gold", "dataEnvio": "2026-05-27", "dataElegivel": "2026-05-27", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Cozinha Paula Souza", "tier": "Platinum", "dataEnvio": "2026-05-27", "dataElegivel": "2026-05-27", "respForm": true, "dataForm": "2026-05-28", "respWpp": false, "dataWpp": null, "mesResposta": 6, "mediaForm": 3, "mediaWpp": null, "q1": "Neutral", "q2": "Very Difficult", "q3": "Very Easy", "q4": "Neutral", "q5": null, "comentario": "O retorno para os chamados abertos deveriam ser melhores, falta suporte   e os prazos já chegam a 10 dias uteis. 5 após abrir e mais 5 dias após a reposta, é inadequado e ficamos sem dar uma posição para os clientes."}, {"negocio": "casadosalame", "tier": "Platinum", "dataEnvio": "2026-05-27", "dataElegivel": "2026-05-27", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Drink Lucia", "tier": "Black", "dataEnvio": "2026-05-27", "dataElegivel": "2026-05-27", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "QVestido", "tier": "Platinum", "dataEnvio": "2026-05-27", "dataElegivel": "2026-05-27", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Regina Fernandez", "tier": "Gold", "dataEnvio": "2026-06-04", "dataElegivel": "2026-06-04", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-06-04", "mesResposta": 6, "mediaForm": null, "mediaWpp": 4, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Easy", "comentario": null}, {"negocio": "Avora Cosméticos", "tier": "Gold", "dataEnvio": "2026-06-04", "dataElegivel": "2026-06-04", "respForm": true, "dataForm": "2026-06-04", "respWpp": true, "dataWpp": "2026-06-04", "mesResposta": 6, "mediaForm": 3, "mediaWpp": 2, "q1": "Easy", "q2": "Easy", "q3": "Difficult", "q4": "Neutral", "q5": "Difficult", "comentario": "Atendimento ao cliente e transparencia nas informacoes"}, {"negocio": "Bevi Protein", "tier": "Gold", "dataEnvio": "2026-06-04", "dataElegivel": "2026-06-04", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Patricia Stoltenberg", "tier": "Gold", "dataEnvio": "2026-06-04", "dataElegivel": "2026-06-04", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "DG Brands", "tier": "Gold", "dataEnvio": "2026-06-05", "dataElegivel": "2026-06-05", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "boltz6", "tier": "Gold", "dataEnvio": "2026-06-05", "dataElegivel": "2026-06-05", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Use Hani", "tier": "Gold", "dataEnvio": "2026-06-05", "dataElegivel": "2026-06-05", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "olfacta", "tier": "Gold", "dataEnvio": "2026-06-05", "dataElegivel": "2026-06-05", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "karinaaviamentos", "tier": "Gold", "dataEnvio": "2026-06-05", "dataElegivel": "2026-06-05", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "mimomeu", "tier": "Gold", "dataEnvio": "2026-06-05", "dataElegivel": "2026-06-05", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "My SB Shoes", "tier": "Gold", "dataEnvio": "2026-06-08", "dataElegivel": "2026-06-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Estilo Canela Shop", "tier": "Platinum", "dataEnvio": "2026-06-08", "dataElegivel": "2026-06-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Deiah Rosa Closet", "tier": "Gold", "dataEnvio": "2026-06-08", "dataElegivel": "2026-06-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Dnna", "tier": "Gold", "dataEnvio": "2026-06-08", "dataElegivel": "2026-06-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Vspectra (Efata Imports)", "tier": "Gold", "dataEnvio": "2026-06-09", "dataElegivel": "2026-06-09", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Vinyl Vault Records", "tier": "Gold", "dataEnvio": "2026-06-09", "dataElegivel": "2026-06-09", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Camaria Enxovais", "tier": "Gold", "dataEnvio": "2026-06-10", "dataElegivel": "2026-06-10", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "OLWAY", "tier": "Platinum", "dataEnvio": "2026-06-10", "dataElegivel": "2026-06-10", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Ohana Store Loja", "tier": "Platinum", "dataEnvio": "2026-06-10", "dataElegivel": "2026-06-10", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Zest Snacks", "tier": "Gold", "dataEnvio": "2026-06-10", "dataElegivel": "2026-06-10", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "cozinhecomigo", "tier": "Platinum", "dataEnvio": "2026-06-10", "dataElegivel": "2026-06-10", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Trevisan+ SC", "tier": "Platinum", "dataEnvio": "2026-06-11", "dataElegivel": "2026-06-11", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Oofa", "tier": "Gold", "dataEnvio": "2026-06-11", "dataElegivel": "2026-06-11", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Café Geo Coffee", "tier": "Gold", "dataEnvio": "2026-06-12", "dataElegivel": "2026-06-12", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Arado", "tier": "Platinum", "dataEnvio": "2026-06-12", "dataElegivel": "2026-06-12", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "New Nutrition", "tier": "Platinum", "dataEnvio": "2026-06-12", "dataElegivel": "2026-06-12", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Verdi Natural", "tier": "Platinum", "dataEnvio": "2026-06-15", "dataElegivel": "2026-06-15", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Inliv ", "tier": "Black", "dataEnvio": "2026-06-15", "dataElegivel": "2026-06-15", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "BM TOYS", "tier": "Gold", "dataEnvio": "2026-06-15", "dataElegivel": "2026-06-15", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Espaço Prime", "tier": "Gold", "dataEnvio": "2026-06-16", "dataElegivel": "2026-06-16", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Café Utam", "tier": "Gold", "dataEnvio": "2026-06-16", "dataElegivel": "2026-06-16", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Eurobras Vinhos", "tier": "Platinum", "dataEnvio": "2026-06-16", "dataElegivel": "2026-06-16", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Papelaria Patinhas Mágicas", "tier": "Gold", "dataEnvio": "2026-06-16", "dataElegivel": "2026-06-16", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Tudo de Bicho", "tier": "Black", "dataEnvio": "2026-06-17", "dataElegivel": "2026-06-17", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Guppy Molhos", "tier": "Gold", "dataEnvio": "2026-06-17", "dataElegivel": "2026-06-17", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "sociedade canina", "tier": "Gold", "dataEnvio": "2026-06-17", "dataElegivel": "2026-06-17", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Mariselva", "tier": "Gold", "dataEnvio": "2026-06-17", "dataElegivel": "2026-06-17", "respForm": true, "dataForm": "2026-06-17", "respWpp": true, "dataWpp": "2026-06-17", "mesResposta": 6, "mediaForm": 3.25, "mediaWpp": 2, "q1": "Very Easy", "q2": "Very Easy", "q3": "Difficult", "q4": "Very Difficult", "q5": "Difficult", "comentario": null}, {"negocio": "DO LADO - Celina Locks Beauty", "tier": "Platinum", "dataEnvio": "2026-06-17", "dataElegivel": "2026-06-17", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "dotfit", "tier": "Platinum", "dataEnvio": "2026-06-17", "dataElegivel": "2026-06-17", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-06-17", "mesResposta": 6, "mediaForm": null, "mediaWpp": 4, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Easy", "comentario": null}, {"negocio": "Eleve Suplementos - SC", "tier": "Black", "dataEnvio": "2026-06-18", "dataElegivel": "2026-06-18", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Now Foods Brasil", "tier": "Gold", "dataEnvio": "2026-06-18", "dataElegivel": "2026-06-18", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Sapato Retrô", "tier": "Black", "dataEnvio": "2026-06-18", "dataElegivel": "2026-06-18", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "ouropharma", "tier": "Platinum", "dataEnvio": "2026-06-18", "dataElegivel": "2026-06-18", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Empório sem Álcool", "tier": "Platinum", "dataEnvio": "2026-06-19", "dataElegivel": "2026-06-19", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "MANTORYU", "tier": "Platinum", "dataEnvio": "2026-06-19", "dataElegivel": "2026-06-19", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Matmo", "tier": "Gold", "dataEnvio": "2026-06-19", "dataElegivel": "2026-06-19", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "miake", "tier": "Platinum", "dataEnvio": "2026-06-23", "dataElegivel": "2026-06-23", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Saint Germain Brand", "tier": "Black", "dataEnvio": "2026-06-23", "dataElegivel": "2026-06-23", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "NX", "tier": "Platinum", "dataEnvio": "2026-06-23", "dataElegivel": "2026-06-23", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Enrolaê Cosméticos", "tier": "Platinum", "dataEnvio": "2026-06-24", "dataElegivel": "2026-06-24", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Sodimac", "tier": "Black", "dataEnvio": "2026-06-24", "dataElegivel": "2026-06-24", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Nero For Men", "tier": "Gold", "dataEnvio": "2026-06-24", "dataElegivel": "2026-06-24", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "basyc- Ação - Presentes", "tier": "Black", "dataEnvio": "2026-06-24", "dataElegivel": "2026-06-24", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-07-16", "mesResposta": 7, "mediaForm": null, "mediaWpp": 2, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Difficult", "comentario": null}, {"negocio": "Magrelo Street Wear", "tier": "Gold", "dataEnvio": "2026-06-24", "dataElegivel": "2026-06-24", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-06-25", "mesResposta": 6, "mediaForm": null, "mediaWpp": 1, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Very Difficult", "comentario": null}, {"negocio": "Coração de Pano", "tier": "Platinum", "dataEnvio": "2026-06-25", "dataElegivel": "2026-06-25", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Atacado das Laceiras", "tier": "Gold", "dataEnvio": "2026-06-25", "dataElegivel": "2026-06-25", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "cheirinho de nenem", "tier": "Black", "dataEnvio": "2026-06-25", "dataElegivel": "2026-06-25", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "apiariobrasileira", "tier": "Black", "dataEnvio": "2026-06-25", "dataElegivel": "2026-06-25", "respForm": true, "dataForm": "2026-07-16", "respWpp": true, "dataWpp": "2026-07-16", "mesResposta": 7, "mediaForm": 3.666666667, "mediaWpp": 5, "q1": "Very Easy", "q2": null, "q3": "Very Easy", "q4": "Very Difficult", "q5": "Very Easy", "comentario": null}, {"negocio": "Pure Up", "tier": "Platinum", "dataEnvio": "2026-06-25", "dataElegivel": "2026-06-25", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Calha Umida", "tier": "Gold", "dataEnvio": "2026-06-26", "dataElegivel": "2026-06-26", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Neobody Nutrition", "tier": "Gold", "dataEnvio": "2026-06-26", "dataElegivel": "2026-06-26", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Fitecom Artesanato", "tier": "Gold", "dataEnvio": "2026-06-26", "dataElegivel": "2026-06-26", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Lissé Professional [Do Lado]", "tier": "Gold", "dataEnvio": "2026-06-26", "dataElegivel": "2026-06-26", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "ROOH", "tier": "Black", "dataEnvio": "2026-06-26", "dataElegivel": "2026-06-26", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Club Soda", "tier": "Gold", "dataEnvio": "2026-06-26", "dataElegivel": "2026-06-26", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Pro Tenista", "tier": "Platinum", "dataEnvio": "2026-06-29", "dataElegivel": "2026-06-29", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-06-29", "mesResposta": 7, "mediaForm": null, "mediaWpp": 4, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Easy", "comentario": null}, {"negocio": "Casa das Cuecas", "tier": "Gold", "dataEnvio": "2026-06-29", "dataElegivel": "2026-06-29", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "GiraOfertas", "tier": "Gold", "dataEnvio": "2026-06-29", "dataElegivel": "2026-06-29", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Dark Lab", "tier": "Black", "dataEnvio": "2026-06-29", "dataElegivel": "2026-06-29", "respForm": true, "dataForm": "2026-07-15", "respWpp": true, "dataWpp": "2026-07-15", "mesResposta": 7, "mediaForm": 4.25, "mediaWpp": 4, "q1": "Easy", "q2": "Easy", "q3": "Easy", "q4": "Very Easy", "q5": "Easy", "comentario": null}, {"negocio": "Tricot Life", "tier": "Gold", "dataEnvio": "2026-06-30", "dataElegivel": "2026-06-30", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-06-30", "mesResposta": 7, "mediaForm": null, "mediaWpp": 5, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Very Easy", "comentario": null}, {"negocio": "Honup", "tier": "Gold", "dataEnvio": "2026-06-30", "dataElegivel": "2026-06-30", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Petit Marie Laços", "tier": "Gold", "dataEnvio": "2026-07-01", "dataElegivel": "2026-07-01", "respForm": true, "dataForm": "2026-07-01", "respWpp": true, "dataWpp": "2026-07-01", "mesResposta": 7, "mediaForm": 3.5, "mediaWpp": 4, "q1": "Easy", "q2": "Neutral", "q3": "Neutral", "q4": "Easy", "q5": "Easy", "comentario": "Preços e prazos"}, {"negocio": "WAZ", "tier": "Platinum", "dataEnvio": "2026-07-01", "dataElegivel": "2026-07-01", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Lulo Shoes", "tier": "Gold", "dataEnvio": "2026-07-01", "dataElegivel": "2026-07-01", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Cloude", "tier": "Platinum", "dataEnvio": "2026-07-01", "dataElegivel": "2026-07-01", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Monpet", "tier": "Platinum", "dataEnvio": "2026-07-02", "dataElegivel": "2026-07-02", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Arteira Linhas - NE Partners", "tier": "Platinum", "dataEnvio": "2026-07-02", "dataElegivel": "2026-07-02", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Muvon Nutrition", "tier": "Gold", "dataEnvio": "2026-07-02", "dataElegivel": "2026-07-02", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Buddy Toys + A Trinca", "tier": "Gold", "dataEnvio": "2026-07-02", "dataElegivel": "2026-07-02", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Varella Motos", "tier": "Platinum", "dataEnvio": "2026-07-03", "dataElegivel": "2026-07-03", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Dunamis Fabric", "tier": "Gold", "dataEnvio": "2026-07-03", "dataElegivel": "2026-07-03", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Max Festa", "tier": "Gold", "dataEnvio": "2026-07-06", "dataElegivel": "2026-07-06", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Susi Folheados", "tier": "Gold", "dataEnvio": "2026-07-07", "dataElegivel": "2026-07-07", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Babymee", "tier": "Black", "dataEnvio": "2026-07-07", "dataElegivel": "2026-07-07", "respForm": true, "dataForm": "2026-07-15", "respWpp": true, "dataWpp": "2026-07-15", "mesResposta": 7, "mediaForm": 4.5, "mediaWpp": 5, "q1": "Easy", "q2": "Very Easy", "q3": "Easy", "q4": "Very Easy", "q5": "Very Easy", "comentario": null}, {"negocio": "mabee", "tier": "Platinum", "dataEnvio": "2026-07-07", "dataElegivel": "2026-07-07", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "regianeyamamotostore", "tier": "Platinum", "dataEnvio": "2026-07-08", "dataElegivel": "2026-07-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Le Graes Semijoias", "tier": "Gold", "dataEnvio": "2026-07-08", "dataElegivel": "2026-07-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Trizi Bags", "tier": "Gold", "dataEnvio": "2026-07-08", "dataElegivel": "2026-07-08", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Lojas Casa do Colono", "tier": "Platinum", "dataEnvio": "2026-07-09", "dataElegivel": "2026-07-09", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Groovi - Lumi FoodTech", "tier": "Gold", "dataEnvio": "2026-07-09", "dataElegivel": "2026-07-09", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Leticia MIchels", "tier": "Gold", "dataEnvio": "2026-07-10", "dataElegivel": "2026-07-10", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "kikadiniz", "tier": "Gold", "dataEnvio": "2026-07-10", "dataElegivel": "2026-07-10", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Natureza Divina", "tier": "Black", "dataEnvio": "2026-07-10", "dataElegivel": "2026-07-10", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Miriam Rosa", "tier": "Platinum", "dataEnvio": "2026-07-13", "dataElegivel": "2026-07-13", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Vício Zero", "tier": "Gold", "dataEnvio": "2026-07-13", "dataElegivel": "2026-07-13", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Easy Home", "tier": "Platinum", "dataEnvio": "2026-07-14", "dataElegivel": "2026-07-14", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Duppla Roupas Esportivas", "tier": "Gold", "dataEnvio": "2026-07-15", "dataElegivel": "2026-07-15", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "gobeche", "tier": "Black", "dataEnvio": "2026-07-15", "dataElegivel": "2026-07-15", "respForm": true, "dataForm": "2026-07-24", "respWpp": true, "dataWpp": "2026-07-24", "mesResposta": 7, "mediaForm": 4.5, "mediaWpp": 5, "q1": "Easy", "q2": "Very Easy", "q3": "Very Easy", "q4": "Easy", "q5": "Very Easy", "comentario": "Como melhoria, podiam melhorar a visibilidade do rastreamento de pedidos no painel, incluindo dados da cidade de destino e informações do cliente."}, {"negocio": "Valentim Home", "tier": "Black", "dataEnvio": "2026-07-15", "dataElegivel": "2026-07-15", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Trekko + Acalanto Baby", "tier": "Platinum", "dataEnvio": "2026-07-16", "dataElegivel": "2026-07-16", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Everup Nutrition", "tier": "Platinum", "dataEnvio": "2026-07-16", "dataElegivel": "2026-07-16", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Lia Pequeninas", "tier": "Gold", "dataEnvio": "2026-07-16", "dataElegivel": "2026-07-16", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Tudão Tech", "tier": "Platinum", "dataEnvio": "2026-07-16", "dataElegivel": "2026-07-16", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-07-17", "mesResposta": 7, "mediaForm": null, "mediaWpp": 4, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Easy", "comentario": null}, {"negocio": "Doctor's First", "tier": "Black", "dataEnvio": "2026-07-17", "dataElegivel": "2026-07-17", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-07-20", "mesResposta": 7, "mediaForm": null, "mediaWpp": 5, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Very Easy", "comentario": null}, {"negocio": "Belle Nathuss", "tier": "Platinum", "dataEnvio": "2026-07-17", "dataElegivel": "2026-07-17", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Ecoá Fitocosméticos", "tier": "Platinum", "dataEnvio": "2026-07-20", "dataElegivel": "2026-07-20", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Nanny Modas", "tier": "Gold", "dataEnvio": "2026-06-01", "dataElegivel": "2026-06-01", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-06-02", "mesResposta": 6, "mediaForm": null, "mediaWpp": 4, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Easy", "comentario": null}, {"negocio": "Mister Decants", "tier": "Gold", "dataEnvio": "2026-05-13", "dataElegivel": "2026-05-13", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-05-29", "mesResposta": 6, "mediaForm": null, "mediaWpp": 5, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Very Easy", "comentario": null}, {"negocio": "Charme Decants", "tier": "Platinum", "dataEnvio": "2026-05-26", "dataElegivel": "2026-05-26", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-05-29", "mesResposta": 6, "mediaForm": null, "mediaWpp": 4, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Easy", "comentario": null}, {"negocio": "Creme e Cacau", "tier": "Platinum", "dataEnvio": "2026-06-10", "dataElegivel": "2026-06-10", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-06-10", "mesResposta": 6, "mediaForm": null, "mediaWpp": 5, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Very Easy", "comentario": null}, {"negocio": "cltoys2", "tier": "Gold", "dataEnvio": "2026-07-21", "dataElegivel": "2026-07-21", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Souly", "tier": "Black", "dataEnvio": "2026-07-21", "dataElegivel": "2026-07-21", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-07-22", "mesResposta": 7, "mediaForm": null, "mediaWpp": 1, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Very Difficult", "comentario": null}, {"negocio": "Riza Active Care", "tier": "Gold", "dataEnvio": "2026-07-22", "dataElegivel": "2026-07-22", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Casa da Panificação", "tier": "Platinum", "dataEnvio": "2026-07-22", "dataElegivel": "2026-07-22", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Algodão Doce Lar 🇧🇷", "tier": "Gold", "dataEnvio": "2026-07-22", "dataElegivel": "2026-07-22", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Troffe Nutrition", "tier": "Platinum", "dataEnvio": "2026-07-23", "dataElegivel": "2026-07-23", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "[Loggi e Jadlog] - pinkaplique2", "tier": "Platinum", "dataEnvio": "2026-07-23", "dataElegivel": "2026-07-23", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "[NE] La Muse", "tier": "Gold", "dataEnvio": "2026-07-23", "dataElegivel": "2026-07-23", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Mithix", "tier": "Platinum", "dataEnvio": "2026-07-23", "dataElegivel": "2026-07-23", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "lullypetcia", "tier": "Platinum", "dataEnvio": "2026-07-23", "dataElegivel": "2026-07-23", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Aurum Cosmeticos", "tier": "Platinum", "dataEnvio": "2026-07-23", "dataElegivel": "2026-07-23", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-07-23", "mesResposta": 7, "mediaForm": null, "mediaWpp": 3, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Neutral", "comentario": null}, {"negocio": "Nai Home", "tier": "Gold", "dataEnvio": "2026-07-24", "dataElegivel": "2026-07-24", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-07-24", "mesResposta": 7, "mediaForm": null, "mediaWpp": 1, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Very Difficult", "comentario": null}, {"negocio": "Piu Blu", "tier": "Platinum", "dataEnvio": "2026-07-24", "dataElegivel": "2026-07-24", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Yamuna Artesanal", "tier": "Black", "dataEnvio": "2026-07-24", "dataElegivel": "2026-07-24", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Elevage Brasil", "tier": "Platinum", "dataEnvio": "2026-07-24", "dataElegivel": "2026-07-24", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Herrmann Health", "tier": "Platinum", "dataEnvio": "2026-07-27", "dataElegivel": "2026-07-27", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Mimomox", "tier": "Platinum", "dataEnvio": "2026-07-27", "dataElegivel": "2026-07-27", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Samere Atacado", "tier": "Platinum", "dataEnvio": "2026-07-27", "dataElegivel": "2026-07-27", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Loja Dufins", "tier": "Black", "dataEnvio": "2026-07-28", "dataElegivel": "2026-07-28", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Pura Fibra", "tier": "Gold", "dataEnvio": "2026-07-28", "dataElegivel": "2026-07-28", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "capiii", "tier": "Gold", "dataEnvio": "2026-07-28", "dataElegivel": "2026-07-28", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Original Sticker", "tier": "Platinum", "dataEnvio": "2026-07-29", "dataElegivel": "2026-07-29", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Anjos do Amor", "tier": "Gold", "dataEnvio": "2026-07-29", "dataElegivel": "2026-07-29", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Reload", "tier": "Platinum", "dataEnvio": "2026-07-29", "dataElegivel": "2026-07-29", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Miss Misses", "tier": "Platinum", "dataEnvio": "2026-07-29", "dataElegivel": "2026-07-29", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "[NE] Amendobras", "tier": "Platinum", "dataEnvio": "2026-07-29", "dataElegivel": "2026-07-29", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Telhanorte - BID", "tier": "Black", "dataEnvio": "2026-07-30", "dataElegivel": "2026-07-30", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Florais do Vale", "tier": "Platinum", "dataEnvio": "2026-07-30", "dataElegivel": "2026-07-30", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Kolplast ", "tier": "Gold", "dataEnvio": "2026-07-30", "dataElegivel": "2026-07-30", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "alphazago.com.br", "tier": "Platinum", "dataEnvio": "2026-07-30", "dataElegivel": "2026-07-30", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Outside Co", "tier": "Black", "dataEnvio": "2026-07-31", "dataElegivel": "2026-07-31", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "O Capacho", "tier": "Platinum", "dataEnvio": "2026-07-31", "dataElegivel": "2026-07-31", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Pau Brasil Calçados", "tier": "Platinum", "dataEnvio": "2026-07-31", "dataElegivel": "2026-07-31", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Summer Blue", "tier": "Platinum", "dataEnvio": "2026-07-31", "dataElegivel": "2026-07-31", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "perfumedecants", "tier": "Gold", "dataEnvio": "2026-08-03", "dataElegivel": "2026-08-03", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Petit Rose", "tier": "Platinum", "dataEnvio": "2026-08-03", "dataElegivel": "2026-08-03", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "donteat", "tier": "Gold", "dataEnvio": "2026-08-03", "dataElegivel": "2026-08-03", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Ópera Kids", "tier": "Black", "dataEnvio": "2026-08-03", "dataElegivel": "2026-08-03", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Edifier", "tier": "Black", "dataEnvio": "2026-08-03", "dataElegivel": "2026-08-03", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Doroty Foods", "tier": "Gold", "dataEnvio": "2026-08-03", "dataElegivel": "2026-08-03", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "For You Solutions", "tier": "Black", "dataEnvio": "2026-08-04", "dataElegivel": "2026-08-04", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Quanton 3D", "tier": "Platinum", "dataEnvio": "2026-08-04", "dataElegivel": "2026-08-04", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Oh My Gold", "tier": "Platinum", "dataEnvio": "2026-08-04", "dataElegivel": "2026-08-04", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Lia Benta", "tier": "Platinum", "dataEnvio": "2026-08-05", "dataElegivel": "2026-08-05", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Tudo Para Montagem", "tier": "Black", "dataEnvio": "2026-08-05", "dataElegivel": "2026-08-05", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Azeite Sabiá", "tier": "Gold", "dataEnvio": "2026-08-05", "dataElegivel": "2026-08-05", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "neoformula", "tier": "Platinum", "dataEnvio": "2026-08-05", "dataElegivel": "2026-08-05", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Krokodilus", "tier": "Gold", "dataEnvio": "2026-08-05", "dataElegivel": "2026-08-05", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Una Culture", "tier": "Platinum", "dataEnvio": "2026-06-29", "dataElegivel": "2026-06-29", "respForm": false, "dataForm": null, "respWpp": true, "dataWpp": "2026-07-20", "mesResposta": 7, "mediaForm": null, "mediaWpp": 4, "q1": null, "q2": null, "q3": null, "q4": null, "q5": "Easy", "comentario": null}, {"negocio": "L Move", "tier": "Gold", "dataEnvio": "2026-08-06", "dataElegivel": "2026-08-06", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "guilherminadepaula", "tier": "Black", "dataEnvio": "2026-08-07", "dataElegivel": "2026-08-07", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Paz Energy", "tier": "Gold", "dataEnvio": "2026-08-10", "dataElegivel": "2026-08-10", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "[NE] Carolla Home", "tier": "Platinum", "dataEnvio": "2026-08-10", "dataElegivel": "2026-08-10", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "[NE] Ekos Nutraceutica - Fontes Log", "tier": "Gold", "dataEnvio": "2026-08-11", "dataElegivel": "2026-08-11", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}, {"negocio": "Mundial Calçados", "tier": "Black", "dataEnvio": "2026-08-11", "dataElegivel": "2026-08-11", "respForm": false, "dataForm": null, "respWpp": false, "dataWpp": null, "mesResposta": null, "mediaForm": null, "mediaWpp": null, "q1": null, "q2": null, "q3": null, "q4": null, "q5": null, "comentario": null}]};
+const RAW_ROWS = CES_DATASET.rows;
+const GENERATED_AT = new Date(CES_DATASET.generatedAt);
+const TODAY = new Date();
+
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MONTH_ORDER = MESES; // mesma ordem cronológica
+
+function parseLocalDate(iso){
+  if(!iso) return null;
+  const [y,m,d] = iso.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+
+function fmtDateTime(d){
+  return d.toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+}
+function fmtDate(d){
+  return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric'});
+}
+function fmtPct(v){ return v==null ? '—' : v.toFixed(1).replace('.', ',') + '%'; }
+function fmtNum(v, dec){ return v==null ? '—' : v.toFixed(dec==null?2:dec).replace('.', ','); }
+
+// ---------- Deriva campos calculados de cada linha ----------
+const ALL_ROWS = RAW_ROWS.map(r => {
+  const dataEnvioDate = parseLocalDate(r.dataEnvio);
+  const dataEnvioMidnight = dataEnvioDate ? new Date(dataEnvioDate.getFullYear(), dataEnvioDate.getMonth(), dataEnvioDate.getDate()) : null;
+  const hojeMidnight = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate());
+  const futuro = dataEnvioMidnight ? dataEnvioMidnight > hojeMidnight : false;
+  const mesElegivel = dataEnvioDate ? MESES[dataEnvioDate.getMonth()] : null;
+  const respondeu = !!(r.respForm || r.respWpp);
+  const canal = (r.respForm && r.respWpp) ? 'Ambos' : (r.respForm ? 'Formulário' : (r.respWpp ? 'WhatsApp' : null));
+  const mesRespostaNome = r.mesResposta ? MESES[r.mesResposta - 1] : null;
+  let media = null;
+  if(r.mediaForm != null && r.mediaWpp != null) media = (r.mediaForm + r.mediaWpp) / 2;
+  else if(r.mediaForm != null) media = r.mediaForm;
+  else if(r.mediaWpp != null) media = r.mediaWpp;
+  return Object.assign({}, r, { dataEnvioDate, futuro, mesElegivel, respondeu, canal, mesRespostaNome, media });
+});
+
+// ================= VISÃO GERAL =================
+function getFiltrosGeral(){
+  return {
+    mes: document.getElementById('vg-filtro-mes').value,
+    negocio: document.getElementById('vg-filtro-negocio').value.trim().toLowerCase(),
+  };
+}
+function limparFiltrosGeral(){
+  document.getElementById('vg-filtro-mes').value = '';
+  document.getElementById('vg-filtro-negocio').value = '';
+  renderGeral();
+}
+function getRowsFiltradas(){
+  const { mes, negocio } = getFiltrosGeral();
+  return ALL_ROWS.filter(r => {
+    if(mes && r.mesElegivel !== mes) return false;
+    if(negocio && !(r.negocio || '').toLowerCase().includes(negocio)) return false;
+    return true;
+  });
+}
+
+function computeAggregates(rows){
+  const eligRows = rows.filter(r => r.dataEnvioDate && !r.futuro);
+  const respondedRows = eligRows.filter(r => r.respondeu);
+
+  const totalElig = eligRows.length;
+  const totalResp = respondedRows.length;
+  const formCount = eligRows.filter(r => r.respForm).length;
+  const wppCount = eligRows.filter(r => r.respWpp).length;
+  const bothCount = eligRows.filter(r => r.respForm && r.respWpp).length;
+  const taxa = totalElig ? (totalResp / totalElig * 100) : null;
+
+  const withMedia = respondedRows.filter(r => r.media != null);
+  const mediaGeral = withMedia.length ? withMedia.reduce((a, r) => a + r.media, 0) / withMedia.length : null;
+
+  const byMonth = MONTH_ORDER.map(m => {
+    const me = eligRows.filter(r => r.mesElegivel === m);
+    if(!me.length) return null;
+    const mr = me.filter(r => r.respondeu);
+    return {
+      mes: m,
+      elig: me.length,
+      form: me.filter(r => r.respForm).length,
+      wpp: me.filter(r => r.respWpp).length,
+      total: mr.length,
+      taxa: me.length ? (mr.length / me.length * 100) : null,
+    };
+  }).filter(Boolean);
+
+  const dims = [
+    {key: 'q1', label: 'Contrato'},
+    {key: 'q2', label: 'Integração'},
+    {key: 'q3', label: '1ª Coleta'},
+    {key: 'q4', label: 'Painel'},
+    {key: 'q5', label: 'Rotina'},
+  ];
+  const cats = ['Very Difficult', 'Difficult', 'Neutral', 'Easy', 'Very Easy'];
+  const heat = dims.map(d => {
+    const vals = {}; cats.forEach(c => vals[c] = 0);
+    let base = 0;
+    eligRows.forEach(r => { const v = r[d.key]; if(v && cats.includes(v)){ vals[v]++; base++; } });
+    return {dim: d.label, vals, base};
+  });
+
+  const tiers = ['Platinum', 'Gold', 'Black'];
+  const tierRows = tiers.map(t => {
+    const te = eligRows.filter(r => r.tier === t);
+    const tr = te.filter(r => r.respondeu);
+    const tm = tr.filter(r => r.media != null);
+    return {
+      tier: t, elig: te.length, resp: tr.length,
+      taxa: te.length ? (tr.length / te.length * 100) : null,
+      media: tm.length ? tm.reduce((a, r) => a + r.media, 0) / tm.length : null,
+    };
+  });
+
+  const mesRespMap = {};
+  respondedRows.forEach(r => {
+    if(r.mesRespostaNome && r.media != null){
+      (mesRespMap[r.mesRespostaNome] = mesRespMap[r.mesRespostaNome] || []).push(r.media);
+    }
+  });
+  const mediaPorMes = MONTH_ORDER.map(m => mesRespMap[m] ? {
+    mes: m, n: mesRespMap[m].length, media: mesRespMap[m].reduce((a, b) => a + b, 0) / mesRespMap[m].length,
+  } : null).filter(Boolean);
+
+  const formMedias = eligRows.filter(r => r.respForm && r.mediaForm != null).map(r => r.mediaForm);
+  const wppMedias = eligRows.filter(r => r.respWpp && r.mediaWpp != null).map(r => r.mediaWpp);
+  const mediaCanal = {
+    form: formMedias.length ? {n: formMedias.length, media: formMedias.reduce((a, b) => a + b, 0) / formMedias.length} : null,
+    wpp: wppMedias.length ? {n: wppMedias.length, media: wppMedias.reduce((a, b) => a + b, 0) / wppMedias.length} : null,
+  };
+
+  return {totalElig, totalResp, formCount, wppCount, bothCount, taxa, mediaGeral, byMonth, heat, tierRows, mediaPorMes, mediaCanal};
+}
+
+function heroCardHtml(label, value, note){
+  return `<div class="hero-kpi-card">
+    <div class="hero-kpi-card-label">${label}</div>
+    <div class="hero-kpi-card-value">${value}</div>
+    <div class="hero-kpi-card-note">${note}</div>
+  </div>`;
+}
+
+function renderGeral(){
+  const filtros = getFiltrosGeral();
+  const filtered = getRowsFiltradas();
+  const agg = computeAggregates(filtered);
+  const filtroAtivo = !!(filtros.mes || filtros.negocio);
+
+  document.getElementById('vg-filter-status').textContent = filtroAtivo
+    ? `Filtro ativo — mostrando ${filtered.length} de ${ALL_ROWS.length} negócios`
+    : '';
+
+  const hojeStr = fmtDate(TODAY);
+  document.getElementById('hero-kpi-grid').innerHTML = [
+    heroCardHtml('Elegíveis' + (filtros.mes ? ` (${filtros.mes})` : ''), agg.totalElig,
+      `Considera só quem já recebeu a pesquisa até ${hojeStr}`),
+    heroCardHtml('Respostas Únicas', agg.totalResp, 'Por negócio — sem duplicar quem respondeu 2x'),
+    heroCardHtml('Taxa de Resposta', fmtPct(agg.taxa), `${agg.totalResp} respostas / ${agg.totalElig} elegíveis`),
+    heroCardHtml('Via Formulário', agg.formCount, `${agg.bothCount} responderam pelos dois canais`),
+    heroCardHtml('Via WhatsApp', agg.wppCount, 'Canal Treble · pergunta única (Rotina)'),
+    heroCardHtml('Média CES Geral', fmtNum(agg.mediaGeral), 'Escala 1 (Very Difficult) – 5 (Very Easy)'),
+  ].join('');
+
+  document.getElementById('funil-helper').textContent = filtroAtivo
+    ? 'Funil recalculado para o filtro selecionado. "Mês elegível" é o mês em que o negócio ficou elegível; as respostas contam independentemente do mês em que chegaram.'
+    : 'Elegíveis considera apenas negócios que já receberam a pesquisa até hoje. Cada linha soma todas as respostas daquele grupo, mesmo as recebidas em um mês posterior.';
+  document.getElementById('funil-periodo').textContent = agg.byMonth.length ? `${agg.byMonth[0].mes}–${agg.byMonth[agg.byMonth.length-1].mes} 2026` : '—';
+
+  const funilBody = document.getElementById('funil-body');
+  if(agg.byMonth.length === 0){
+    funilBody.innerHTML = `<tr><td colspan="6" class="empty-state">Nenhum negócio elegível para este filtro.</td></tr>`;
+  } else {
+    funilBody.innerHTML = agg.byMonth.map(m => `
+      <tr>
+        <td>${m.mes}</td>
+        <td class="right-align">${m.elig}</td>
+        <td class="right-align ${m.form ? '' : 'kpi-num-dash'}">${m.form}</td>
+        <td class="right-align ${m.wpp ? '' : 'kpi-num-dash'}">${m.wpp}</td>
+        <td class="right-align">${m.total}</td>
+        <td class="right-align">${fmtPct(m.taxa)}</td>
+      </tr>
+    `).join('') + `
+      <tr class="row-total">
+        <td>Total</td>
+        <td class="right-align">${agg.totalElig}</td>
+        <td class="right-align">${agg.formCount}</td>
+        <td class="right-align">${agg.wppCount}</td>
+        <td class="right-align">${agg.totalResp}</td>
+        <td class="right-align">${fmtPct(agg.taxa)}</td>
+      </tr>`;
+  }
+
+  document.getElementById('heatmap-periodo').textContent = filtroAtivo ? 'Filtro ativo' : 'Todo o período elegível';
+  const cats = ['Very Difficult', 'Difficult', 'Neutral', 'Easy', 'Very Easy'];
+  document.getElementById('heatmap-body').innerHTML = agg.heat.map(row => {
+    let html = `<td style="font-weight:600;">${row.dim}</td>`;
+    cats.forEach(c => {
+      const v = row.vals[c] || 0;
+      const pct = row.base ? v / row.base : 0;
+      const bg = heatColorFor(pct);
+      const fg = pct > 0.55 ? '#fff' : '#111827';
+      const pctLabel = row.base ? Math.round(pct * 100) + '%' : '—';
+      html += `<td><div class="heat-cell" style="background:${bg}; color:${fg};">${v}<span class="heat-pct" style="color:${fg}; opacity:0.85;">${pctLabel}</span></div></td>`;
+    });
+    html += `<td class="right-align" style="color:var(--muted);">${row.base}</td>`;
+    return `<tr>${html}</tr>`;
+  }).join('') || `<tr><td colspan="7" class="empty-state">Sem respostas para este filtro.</td></tr>`;
+
+  document.getElementById('tier-periodo').textContent = filtroAtivo ? 'Filtro ativo' : 'Todo o período elegível';
+  document.getElementById('tier-body').innerHTML = agg.tierRows.map(t => `
+    <tr>
+      <td>${tierBadge(t.tier)}</td>
+      <td class="right-align">${t.elig}</td>
+      <td class="right-align">${t.resp}</td>
+      <td class="right-align">${fmtPct(t.taxa)}</td>
+      <td class="right-align">${fmtNum(t.media)}</td>
+    </tr>
+  `).join('') + `
+    <tr class="row-total">
+      <td>Total</td>
+      <td class="right-align">${agg.totalElig}</td>
+      <td class="right-align">${agg.totalResp}</td>
+      <td class="right-align">${fmtPct(agg.taxa)}</td>
+      <td class="right-align">${fmtNum(agg.mediaGeral)}</td>
+    </tr>`;
+
+  const mediaMesEl = document.getElementById('media-mes-body');
+  mediaMesEl.innerHTML = agg.mediaPorMes.length ? agg.mediaPorMes.map(m => `
+    <div class="month-avg-row">
+      <div class="month-avg-label">${m.mes}</div>
+      <div class="month-avg-bar"><div class="bar-track"><div class="bar-fill" style="width:${Math.min(m.media/5*100,100)}%;"></div></div></div>
+      <div class="month-avg-value">${fmtNum(m.media)}</div>
+    </div>
+  `).join('') : `<div class="empty-state">Sem respostas para este filtro.</div>`;
+
+  const mediaCanalEl = document.getElementById('media-canal-body');
+  const mc = agg.mediaCanal;
+  mediaCanalEl.innerHTML = (mc.form || mc.wpp) ? `
+    ${mc.form ? `<div class="month-avg-row">
+      <div class="month-avg-label">Formulário</div>
+      <div class="month-avg-bar"><div class="bar-track"><div class="bar-fill" style="width:${Math.min(mc.form.media/5*100,100)}%;"></div></div></div>
+      <div class="month-avg-value">${fmtNum(mc.form.media)}</div>
+    </div>` : ''}
+    ${mc.wpp ? `<div class="month-avg-row">
+      <div class="month-avg-label">WhatsApp</div>
+      <div class="month-avg-bar"><div class="bar-track"><div class="bar-fill" style="width:${Math.min(mc.wpp.media/5*100,100)}%; background:#60a5fa;"></div></div></div>
+      <div class="month-avg-value">${fmtNum(mc.wpp.media)}</div>
+    </div>` : ''}
+  ` : `<div class="empty-state">Sem respostas para este filtro.</div>`;
+
+  document.getElementById('metodologia-footnote').innerHTML =
+    `Metodologia: dados extraídos da aba <em>Resumo por Negócio v2</em> (uma linha por negócio), com remoção de duplicatas exatas. Uma resposta é contada uma única vez por negócio mesmo quando ele respondeu pelo Formulário e pelo WhatsApp — nesse caso, a média combinada é a média das duas notas. "Elegíveis" considera apenas negócios cuja data de envio da pesquisa já ocorreu (≤ ${hojeStr}); negócios com data futura ainda não entram no cálculo e aparecem na aba Consulta por Cliente como "Aguardando envio". Cada linha do funil soma todas as respostas do grupo, independentemente do mês em que a resposta foi registrada. Escala CES: Very Difficult=1, Difficult=2, Neutral=3, Easy=4, Very Easy=5. Use os filtros de mês e negócio acima para recalcular todos os painéis desta aba.`;
+}
+
+function heatColorFor(pct){
+  const stops = [
+    {p:0,    c:[239,246,255]},
+    {p:0.25, c:[191,219,254]},
+    {p:0.5,  c:[96,165,250]},
+    {p:0.75, c:[37,99,235]},
+    {p:1,    c:[15,27,69]},
+  ];
+  let lo = stops[0], hi = stops[stops.length - 1];
+  for(let i = 0; i < stops.length - 1; i++){
+    if(pct >= stops[i].p && pct <= stops[i+1].p){ lo = stops[i]; hi = stops[i+1]; break; }
+  }
+  const range = hi.p - lo.p || 1;
+  const t = (pct - lo.p) / range;
+  const c = lo.c.map((v, i) => Math.round(v + (hi.c[i] - v) * t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+function tierBadge(tier){
+  const map = {'Gold': 'tier-gold', 'Platinum': 'tier-platinum', 'Black': 'tier-black'};
+  const cls = map[tier] || 'tier-none';
+  return `<span class="tier-badge ${cls}">${tier || '—'}</span>`;
+}
+
+function populateVgFiltros(){
+  const meses = [...new Set(ALL_ROWS.filter(r => r.mesElegivel).map(r => r.mesElegivel))]
+    .sort((a, b) => MESES.indexOf(a) - MESES.indexOf(b));
+  const mesSel = document.getElementById('vg-filtro-mes');
+  meses.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; mesSel.appendChild(o); });
+
+  const negocios = [...new Set(ALL_ROWS.map(r => r.negocio).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const dl = document.getElementById('vg-negocios-list');
+  dl.innerHTML = negocios.map(n => `<option value="${escapeHtml(n)}"></option>`).join('');
+
+  const mesSelConsulta = document.getElementById('filtro-mes');
+  meses.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; mesSelConsulta.appendChild(o); });
+}
+
+// ================= CONSULTA POR CLIENTE =================
+function statusBadge(r){
+  if(r.futuro) return '<span class="status-badge status-futuro">Aguardando envio</span>';
+  return r.respondeu
+    ? '<span class="status-badge status-sim">Sim</span>'
+    : '<span class="status-badge status-nao">Não</span>';
+}
+function renderConsulta(){
+  const busca = document.getElementById('filtro-busca').value.trim().toLowerCase();
+  const mes = document.getElementById('filtro-mes').value;
+  const status = document.getElementById('filtro-status').value;
+
+  const filtered = ALL_ROWS.filter(r => {
+    if(busca && !(r.negocio || '').toLowerCase().includes(busca)) return false;
+    if(mes && r.mesElegivel !== mes) return false;
+    if(status === 'sim' && !r.respondeu) return false;
+    if(status === 'nao' && (r.respondeu || r.futuro)) return false;
+    if(status === 'futuro' && !r.futuro) return false;
+    return true;
+  }).sort((a, b) => (a.negocio || '').localeCompare(b.negocio || '', 'pt-BR'));
+
+  document.getElementById('consulta-count').textContent = `Mostrando ${filtered.length} de ${ALL_ROWS.length} negócios`;
+
+  const tbody = document.getElementById('consulta-body');
+  if(filtered.length === 0){
+    tbody.innerHTML = `<tr><td colspan="8" class="no-results">Nenhum negócio encontrado.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map(r => `
+    <tr>
+      <td style="font-weight:600;">${escapeHtml(r.negocio || '—')}</td>
+      <td>${tierBadge(r.tier)}</td>
+      <td>${r.mesElegivel || '—'}</td>
+      <td>${statusBadge(r)}</td>
+      <td>${r.canal || '<span class="kpi-num-dash">—</span>'}</td>
+      <td>${r.mesRespostaNome || '<span class="kpi-num-dash">—</span>'}</td>
+      <td class="right-align">${r.media != null ? fmtNum(r.media) : '<span class="kpi-num-dash">—</span>'}</td>
+      <td class="comentario-cell">${r.comentario ? escapeHtml(r.comentario) : '<span class="kpi-num-dash">—</span>'}</td>
+    </tr>
+  `).join('');
+}
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ================= TABS =================
+function switchTab(view){
+  document.querySelectorAll('.page-tabs button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
+}
+
+// ================= INIT =================
+function updateRefreshBadge(){
+  document.getElementById('refresh-badge').innerHTML =
+    `Dados de <b>${fmtDateTime(GENERATED_AT)}</b> · peça para atualizar quando quiser`;
+  document.getElementById('consulta-helper').textContent =
+    `Busque um negócio pelo nome ou filtre por mês de elegibilidade e status de resposta. Base: ${ALL_ROWS.length} negócios. Dados de ${fmtDateTime(GENERATED_AT)}.`;
+}
+
+populateVgFiltros();
+updateRefreshBadge();
+renderGeral();
+renderConsulta();
+</script>
+
+</body>
+</html>
