@@ -600,7 +600,7 @@ function renderGeral(){
     ? `Filtro ativo — mostrando ${filtered.length} de ${ALL_ROWS.length} negócios`
     : '';
 
-  const hojeStr = fmtDate(TODAY);
+  const hojeStr = fmtDate(new Date());
   document.getElementById('hero-kpi-grid').innerHTML = [
     heroCardHtml('Elegíveis' + (filtros.mes ? ` (${filtros.mes})` : ''), agg.totalElig,
       `Considera só quem já recebeu a pesquisa até ${hojeStr}`),
