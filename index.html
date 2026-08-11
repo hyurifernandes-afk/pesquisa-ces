@@ -461,10 +461,12 @@ function buildAllRows(parsedRows){
     const mesElegivel = dataEnvioDate ? MESES[dataEnvioDate.getMonth()] : null;
     const respFormVal = get(headers, r, COLS.respForm) === 'Sim';
     const respWppVal = get(headers, r, COLS.respWpp) === 'Sim';
-    const respondeu = respFormVal || respWppVal;
     const canal = (respFormVal && respWppVal) ? 'Ambos' : (respFormVal ? 'Formulário' : (respWppVal ? 'WhatsApp' : null));
     const mesRespostaNum = parseInt(get(headers, r, COLS.mesResposta), 10);
-    const mesRespostaNome = mesRespostaNum ? MESES[mesRespostaNum - 1] : null;
+    const mesRespostaNome = (mesRespostaNum >= 1 && mesRespostaNum <= 12) ? MESES[mesRespostaNum - 1] : null;
+    // "Respondeu" é definido pela coluna mês_resposta (K), não pelos checkboxes de canal:
+    // se K tem um mês preenchido, o negócio conta como respondente daquele mês.
+    const respondeu = !!mesRespostaNome;
     const mediaForm = parseBRNumber(get(headers, r, COLS.mediaForm));
     const mediaWpp = parseBRNumber(get(headers, r, COLS.mediaWpp));
     let media = null;
