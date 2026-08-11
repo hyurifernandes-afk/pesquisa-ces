@@ -160,6 +160,9 @@
   .consulta-table-wrap table{ width:100%; }
   .consulta-table-wrap thead th{ position:sticky; top:0; z-index:2; background:#fafbfc; box-shadow:0 2px 4px rgba(0,0,0,0.06); }
   .consulta-table-wrap td, .consulta-table-wrap th{ font-size:.8rem; }
+  .sortable-th{ cursor:pointer; user-select:none; white-space:nowrap; }
+  .sortable-th:hover{ color:var(--primary); }
+  .sort-ind{ display:inline-block; width:.9rem; font-size:.7rem; color:var(--primary); }
   .comentario-cell{ color:var(--muted-strong); max-width:280px; }
   .no-results{ text-align:center; color:var(--muted); padding:2rem; }
 </style>
@@ -263,6 +266,29 @@
       </div>
     </div>
 
+    <p class="helper-text" style="margin-top:1.5rem;">Nota de cada negócio respondente por dimensão. Passe o mouse sobre uma célula acima para ver quais negócios deram aquela nota; célula em branco (—) significa que aquela dimensão não foi respondida.</p>
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Mapa de calor por negócio</h2>
+        <span id="merchant-heatmap-count"></span>
+      </div>
+      <div class="heatmap-wrap" style="max-height:65vh; overflow-y:auto;">
+      <table class="heatmap-table">
+        <thead>
+          <tr>
+            <th style="text-align:left; position:sticky; top:0; background:#fafbfc; z-index:1;">Negócio</th>
+            <th style="position:sticky; top:0; background:#fafbfc; z-index:1;">Contrato</th>
+            <th style="position:sticky; top:0; background:#fafbfc; z-index:1;">Integração</th>
+            <th style="position:sticky; top:0; background:#fafbfc; z-index:1;">1ª Coleta</th>
+            <th style="position:sticky; top:0; background:#fafbfc; z-index:1;">Painel</th>
+            <th style="position:sticky; top:0; background:#fafbfc; z-index:1;">Rotina</th>
+          </tr>
+        </thead>
+        <tbody id="merchant-heatmap-body"></tbody>
+      </table>
+      </div>
+    </div>
+
     <div class="dashboard-section-title">Respostas por Tier</div>
     <div class="panel">
       <div class="panel-header">
@@ -330,14 +356,14 @@
       <table>
         <thead>
           <tr>
-            <th>Negócio</th>
-            <th>Tier</th>
-            <th>Mês Elegível</th>
-            <th>Respondeu?</th>
-            <th>Canal</th>
-            <th>Mês Resposta</th>
-            <th class="right-align">Média CES</th>
-            <th>Comentário</th>
+            <th class="sortable-th" onclick="sortConsulta('negocio')">Negócio<span class="sort-ind" id="sort-ind-negocio"></span></th>
+            <th class="sortable-th" onclick="sortConsulta('tier')">Tier<span class="sort-ind" id="sort-ind-tier"></span></th>
+            <th class="sortable-th" onclick="sortConsulta('mesElegivel')">Mês Elegível<span class="sort-ind" id="sort-ind-mesElegivel"></span></th>
+            <th class="sortable-th" onclick="sortConsulta('respondeu')">Respondeu?<span class="sort-ind" id="sort-ind-respondeu"></span></th>
+            <th class="sortable-th" onclick="sortConsulta('canal')">Canal<span class="sort-ind" id="sort-ind-canal"></span></th>
+            <th class="sortable-th" onclick="sortConsulta('mesRespostaNome')">Mês Resposta<span class="sort-ind" id="sort-ind-mesRespostaNome"></span></th>
+            <th class="sortable-th right-align" onclick="sortConsulta('media')">Média CES<span class="sort-ind" id="sort-ind-media"></span></th>
+            <th class="sortable-th" onclick="sortConsulta('comentario')">Comentário<span class="sort-ind" id="sort-ind-comentario"></span></th>
           </tr>
         </thead>
         <tbody id="consulta-body"></tbody>
@@ -549,11 +575,26 @@ function computeAggregates(rows){
   ];
   const cats = ['Very Difficult', 'Difficult', 'Neutral', 'Easy', 'Very Easy'];
   const heat = dims.map(d => {
-    const vals = {}; cats.forEach(c => vals[c] = 0);
+    const vals = {}; const names = {};
+    cats.forEach(c => { vals[c] = 0; names[c] = []; });
     let base = 0;
-    eligRows.forEach(r => { const v = r[d.key]; if(v && cats.includes(v)){ vals[v]++; base++; } });
-    return {dim: d.label, vals, base};
+    eligRows.forEach(r => {
+      const v = r[d.key];
+      if(v && cats.includes(v)){ vals[v]++; names[v].push(r.negocio); base++; }
+    });
+    return {dim: d.label, vals, names, base};
   });
+
+  // Mapa de calor por negócio: uma linha por negócio que respondeu ao menos uma
+  // dimensão, com a nota (categórica) de cada uma das 5 dimensões.
+  const merchantHeat = eligRows
+    .filter(r => dims.some(d => r[d.key]))
+    .map(r => ({
+      negocio: r.negocio,
+      tier: r.tier,
+      cells: dims.map(d => ({dim: d.label, key: d.key, val: r[d.key] || null})),
+    }))
+    .sort((a, b) => (a.negocio || '').localeCompare(b.negocio || '', 'pt-BR'));
 
   const tiers = ['Platinum', 'Gold', 'Black'];
   const tierRows = tiers.map(t => {
@@ -592,7 +633,7 @@ function computeAggregates(rows){
     wpp: wppMedias.length ? {n: wppMedias.length, media: wppMedias.reduce((a, b) => a + b, 0) / wppMedias.length} : null,
   };
 
-  return {totalElig, totalResp, formCount, wppCount, bothCount, taxa, mediaGeral, byMonth, heat, tierRows, mediaPorMes, mediaCanal};
+  return {totalElig, totalResp, formCount, wppCount, bothCount, taxa, mediaGeral, byMonth, heat, merchantHeat, tierRows, mediaPorMes, mediaCanal};
 }
 
 function heroCardHtml(label, value, note){
@@ -658,20 +699,35 @@ function renderGeral(){
   }
 
   document.getElementById('heatmap-periodo').textContent = filtroAtivo ? 'Filtro ativo' : 'Todo o período elegível';
+  document.getElementById('merchant-heatmap-count').textContent = `${agg.merchantHeat.length} negócios com resposta`;
   const cats = ['Very Difficult', 'Difficult', 'Neutral', 'Easy', 'Very Easy'];
   document.getElementById('heatmap-body').innerHTML = agg.heat.map(row => {
     let html = `<td style="font-weight:600;">${row.dim}</td>`;
     cats.forEach(c => {
       const v = row.vals[c] || 0;
       const pct = row.base ? v / row.base : 0;
-      const bg = heatColorFor(pct);
-      const fg = pct > 0.55 ? '#fff' : '#111827';
+      const bg = heatColorForCat(c, pct);
+      const fg = pct > 0.5 ? '#fff' : '#111827';
       const pctLabel = row.base ? Math.round(pct * 100) + '%' : '—';
-      html += `<td><div class="heat-cell" style="background:${bg}; color:${fg};">${v}<span class="heat-pct" style="color:${fg}; opacity:0.85;">${pctLabel}</span></div></td>`;
+      const nomes = (row.names[c] || []);
+      const title = nomes.length ? escapeHtml(nomes.join(', ')) : 'Sem respostas nesta célula';
+      html += `<td><div class="heat-cell" title="${title}" style="background:${bg}; color:${fg};">${v}<span class="heat-pct" style="color:${fg}; opacity:0.85;">${pctLabel}</span></div></td>`;
     });
     html += `<td class="right-align" style="color:var(--muted);">${row.base}</td>`;
     return `<tr>${html}</tr>`;
   }).join('') || `<tr><td colspan="7" class="empty-state">Sem respostas para este filtro.</td></tr>`;
+
+  const merchantHeatBody = document.getElementById('merchant-heatmap-body');
+  merchantHeatBody.innerHTML = agg.merchantHeat.length ? agg.merchantHeat.map(m => {
+    const cells = m.cells.map(c => {
+      if(!c.val){
+        return `<td><div class="heat-cell" style="background:#f3f4f6; color:var(--muted);">—</div></td>`;
+      }
+      const colors = CES_CAT_FIXED[c.val] || {bg:'#f3f4f6', fg:'var(--muted)'};
+      return `<td><div class="heat-cell" title="${escapeHtml(c.val)}" style="background:${colors.bg}; color:${colors.fg}; font-size:.72rem;">${escapeHtml(c.val)}</div></td>`;
+    }).join('');
+    return `<tr><td style="font-weight:600;">${escapeHtml(m.negocio || '—')}</td>${cells}</tr>`;
+  }).join('') : `<tr><td colspan="6" class="empty-state">Nenhum negócio com respostas para este filtro.</td></tr>`;
 
   document.getElementById('tier-periodo').textContent = filtroAtivo ? 'Filtro ativo' : 'Todo o período elegível';
   document.getElementById('tier-body').innerHTML = agg.tierRows.map(t => `
@@ -719,21 +775,27 @@ function renderGeral(){
     `Metodologia: dados extraídos da aba <em>Resumo por Negócio v2</em> (uma linha por negócio), com remoção de duplicatas exatas. Uma resposta é contada uma única vez por negócio mesmo quando ele respondeu pelo Formulário e pelo WhatsApp — nesse caso, a média combinada é a média das duas notas. "Elegíveis" considera apenas negócios cuja data de envio da pesquisa já ocorreu (≤ ${hojeStr}); negócios com data futura ainda não entram no cálculo e aparecem na aba Consulta por Cliente como "Aguardando envio". "Respondeu" é definido pela coluna mês_resposta da planilha: se ela tem um mês preenchido, o negócio conta como respondente daquele mês. No funil, a coluna Encaminhados/Elegíveis agrupa por mês de envio da pesquisa (cohort), enquanto as colunas de Respostas agrupam pelo mês de resposta — por isso uma linha pode somar respostas de negócios enviados em outros meses. Escala CES: Very Difficult=1, Difficult=2, Neutral=3, Easy=4, Very Easy=5. Use os filtros de mês e negócio acima para recalcular todos os painéis desta aba.`;
 }
 
-function heatColorFor(pct){
-  const stops = [
-    {p:0,    c:[239,246,255]},
-    {p:0.25, c:[191,219,254]},
-    {p:0.5,  c:[96,165,250]},
-    {p:0.75, c:[37,99,235]},
-    {p:1,    c:[15,27,69]},
-  ];
-  let lo = stops[0], hi = stops[stops.length - 1];
-  for(let i = 0; i < stops.length - 1; i++){
-    if(pct >= stops[i].p && pct <= stops[i+1].p){ lo = stops[i]; hi = stops[i+1]; break; }
-  }
-  const range = hi.p - lo.p || 1;
-  const t = (pct - lo.p) / range;
-  const c = lo.c.map((v, i) => Math.round(v + (hi.c[i] - v) * t));
+// Escala semântica vermelho (esforço alto) -> verde (esforço baixo). A intensidade
+// da cor dentro de cada categoria reflete o percentual de respostas naquela célula.
+const CES_CAT_BASE = {
+  'Very Difficult': [185, 28, 28],
+  'Difficult':       [239, 68, 68],
+  'Neutral':         [156, 163, 175],
+  'Easy':            [74, 222, 128],
+  'Very Easy':       [21, 128, 61],
+};
+const CES_CAT_FIXED = {
+  'Very Difficult': {bg:'#dc2626', fg:'#ffffff'},
+  'Difficult':      {bg:'#fca5a5', fg:'#7f1d1d'},
+  'Neutral':        {bg:'#e5e7eb', fg:'#374151'},
+  'Easy':           {bg:'#86efac', fg:'#14532d'},
+  'Very Easy':      {bg:'#16a34a', fg:'#ffffff'},
+};
+function heatColorForCat(cat, pct){
+  const base = CES_CAT_BASE[cat] || [107, 114, 128];
+  const white = [255, 255, 255];
+  const t = Math.max(0, Math.min(1, pct));
+  const c = white.map((v, i) => Math.round(v + (base[i] - v) * t));
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 function tierBadge(tier){
@@ -772,6 +834,41 @@ function statusBadge(r){
     ? '<span class="status-badge status-sim">Sim</span>'
     : '<span class="status-badge status-nao">Não</span>';
 }
+
+let consultaSort = { key: 'negocio', dir: 'asc' };
+
+function sortConsulta(key){
+  if(consultaSort.key === key){
+    consultaSort.dir = consultaSort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    consultaSort.key = key;
+    consultaSort.dir = 'asc';
+  }
+  renderConsulta();
+}
+
+function consultaSortValue(r, key){
+  switch(key){
+    case 'negocio': return (r.negocio || '').toLowerCase();
+    case 'tier': return (r.tier || '').toLowerCase();
+    case 'mesElegivel': return r.mesElegivel ? MESES.indexOf(r.mesElegivel) : -1;
+    case 'respondeu': return r.futuro ? 2 : (r.respondeu ? 1 : 0);
+    case 'canal': return (r.canal || '').toLowerCase();
+    case 'mesRespostaNome': return r.mesRespostaNome ? MESES.indexOf(r.mesRespostaNome) : -1;
+    case 'media': return r.media == null ? -1 : r.media;
+    case 'comentario': return (r.comentario || '').toLowerCase();
+    default: return '';
+  }
+}
+
+function updateSortIndicators(){
+  ['negocio','tier','mesElegivel','respondeu','canal','mesRespostaNome','media','comentario'].forEach(k => {
+    const el = document.getElementById('sort-ind-' + k);
+    if(!el) return;
+    el.textContent = consultaSort.key === k ? (consultaSort.dir === 'asc' ? '▲' : '▼') : '';
+  });
+}
+
 function renderConsulta(){
   const busca = document.getElementById('filtro-busca').value.trim().toLowerCase();
   const mes = document.getElementById('filtro-mes').value;
@@ -793,8 +890,17 @@ function renderConsulta(){
     if(status === 'nao' && (r.respondeu || r.futuro)) return false;
     if(status === 'futuro' && !r.futuro) return false;
     return true;
-  }).sort((a, b) => (a.negocio || '').localeCompare(b.negocio || '', 'pt-BR'));
+  }).sort((a, b) => {
+    const va = consultaSortValue(a, consultaSort.key);
+    const vb = consultaSortValue(b, consultaSort.key);
+    let cmp;
+    if(typeof va === 'string') cmp = va.localeCompare(vb, 'pt-BR');
+    else cmp = va < vb ? -1 : (va > vb ? 1 : 0);
+    if(cmp === 0) cmp = (a.negocio || '').localeCompare(b.negocio || '', 'pt-BR');
+    return consultaSort.dir === 'asc' ? cmp : -cmp;
+  });
 
+  updateSortIndicators();
   document.getElementById('consulta-count').textContent = `Mostrando ${filtered.length} de ${ALL_ROWS.length} negócios`;
 
   const tbody = document.getElementById('consulta-body');
