@@ -779,7 +779,16 @@ function renderConsulta(){
 
   const filtered = ALL_ROWS.filter(r => {
     if(busca && !(r.negocio || '').toLowerCase().includes(busca)) return false;
-    if(mes && r.mesElegivel !== mes) return false;
+    // Quando o filtro de status é "Respondeu", o Mês passa a se referir ao mês de
+    // resposta (coluna mês_resposta), igual ao funil. Nos demais casos (não respondeu,
+    // aguardando envio, todos) o Mês continua se referindo ao mês de elegibilidade/envio.
+    if(mes){
+      if(status === 'sim'){
+        if(r.mesRespostaNome !== mes) return false;
+      } else if(r.mesElegivel !== mes){
+        return false;
+      }
+    }
     if(status === 'sim' && !r.respondeu) return false;
     if(status === 'nao' && (r.respondeu || r.futuro)) return false;
     if(status === 'futuro' && !r.futuro) return false;
@@ -827,7 +836,7 @@ function setStatus(state, text){
 
 function updateHelperTexts(){
   document.getElementById('consulta-helper').textContent =
-    `Busque um negócio pelo nome ou filtre por mês de elegibilidade e status de resposta. Base: ${ALL_ROWS.length} negócios. Dados de ${fmtDateTime(LAST_UPDATED)}.`;
+    `Busque um negócio pelo nome ou filtre por mês e status de resposta. Com status "Respondeu", o Mês filtra por mês de resposta (coluna mês_resposta); nos demais status, filtra por mês de elegibilidade. Base: ${ALL_ROWS.length} negócios. Dados de ${fmtDateTime(LAST_UPDATED)}.`;
 }
 
 async function loadData(){
