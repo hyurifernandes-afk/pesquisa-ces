@@ -523,15 +523,18 @@ function computeAggregates(rows){
   const withMedia = respondedRows.filter(r => r.media != null);
   const mediaGeral = withMedia.length ? withMedia.reduce((a, r) => a + r.media, 0) / withMedia.length : null;
 
+  // Encaminhados/Elegíveis continua por cohort de envio (mesElegivel).
+  // Respostas (Formulário/WhatsApp/Únicas) passam a contar por mês de resposta
+  // (coluna K / mesRespostaNome), não pelo cohort de quem recebeu a pesquisa.
   const byMonth = MONTH_ORDER.map(m => {
     const me = eligRows.filter(r => r.mesElegivel === m);
-    if(!me.length) return null;
-    const mr = me.filter(r => r.respondeu);
+    const mr = rows.filter(r => r.mesRespostaNome === m);
+    if(!me.length && !mr.length) return null;
     return {
       mes: m,
       elig: me.length,
-      form: me.filter(r => r.respForm).length,
-      wpp: me.filter(r => r.respWpp).length,
+      form: mr.filter(r => r.respForm).length,
+      wpp: mr.filter(r => r.respWpp).length,
       total: mr.length,
       taxa: me.length ? (mr.length / me.length * 100) : null,
     };
@@ -622,14 +625,18 @@ function renderGeral(){
   ].join('');
 
   document.getElementById('funil-helper').textContent = filtroAtivo
-    ? 'Funil recalculado para o filtro selecionado. "Mês elegível" é o mês em que o negócio ficou elegível; as respostas contam independentemente do mês em que chegaram.'
-    : 'Elegíveis considera apenas negócios que já receberam a pesquisa até hoje. Cada linha soma todas as respostas daquele grupo, mesmo as recebidas em um mês posterior.';
+    ? 'Funil recalculado para o filtro selecionado. "Mês elegível" é o mês de envio da pesquisa (cohort); as colunas de Respostas contam pelo mês de resposta (coluna mês_resposta), não pelo cohort.'
+    : 'Elegíveis considera apenas negócios que já receberam a pesquisa até hoje, agrupados pelo mês de envio. As colunas de Respostas contam pelo mês em que a resposta foi registrada (coluna mês_resposta), então uma linha pode ter respostas de negócios enviados em outros meses.';
   document.getElementById('funil-periodo').textContent = agg.byMonth.length ? `${agg.byMonth[0].mes}–${agg.byMonth[agg.byMonth.length-1].mes} 2026` : '—';
 
   const funilBody = document.getElementById('funil-body');
   if(agg.byMonth.length === 0){
     funilBody.innerHTML = `<tr><td colspan="6" class="empty-state">Nenhum negócio elegível para este filtro.</td></tr>`;
   } else {
+    const totalElig = agg.byMonth.reduce((a, m) => a + m.elig, 0);
+    const totalForm = agg.byMonth.reduce((a, m) => a + m.form, 0);
+    const totalWpp = agg.byMonth.reduce((a, m) => a + m.wpp, 0);
+    const totalResp = agg.byMonth.reduce((a, m) => a + m.total, 0);
     funilBody.innerHTML = agg.byMonth.map(m => `
       <tr>
         <td>${m.mes}</td>
@@ -642,11 +649,11 @@ function renderGeral(){
     `).join('') + `
       <tr class="row-total">
         <td>Total</td>
-        <td class="right-align">${agg.totalElig}</td>
-        <td class="right-align">${agg.formCount}</td>
-        <td class="right-align">${agg.wppCount}</td>
-        <td class="right-align">${agg.totalResp}</td>
-        <td class="right-align">${fmtPct(agg.taxa)}</td>
+        <td class="right-align">${totalElig}</td>
+        <td class="right-align">${totalForm}</td>
+        <td class="right-align">${totalWpp}</td>
+        <td class="right-align">${totalResp}</td>
+        <td class="right-align">${totalElig ? fmtPct(totalResp / totalElig * 100) : '—'}</td>
       </tr>`;
   }
 
@@ -709,7 +716,7 @@ function renderGeral(){
   ` : `<div class="empty-state">Sem respostas para este filtro.</div>`;
 
   document.getElementById('metodologia-footnote').innerHTML =
-    `Metodologia: dados extraídos da aba <em>Resumo por Negócio v2</em> (uma linha por negócio), com remoção de duplicatas exatas. Uma resposta é contada uma única vez por negócio mesmo quando ele respondeu pelo Formulário e pelo WhatsApp — nesse caso, a média combinada é a média das duas notas. "Elegíveis" considera apenas negócios cuja data de envio da pesquisa já ocorreu (≤ ${hojeStr}); negócios com data futura ainda não entram no cálculo e aparecem na aba Consulta por Cliente como "Aguardando envio". Cada linha do funil soma todas as respostas do grupo, independentemente do mês em que a resposta foi registrada. Escala CES: Very Difficult=1, Difficult=2, Neutral=3, Easy=4, Very Easy=5. Use os filtros de mês e negócio acima para recalcular todos os painéis desta aba.`;
+    `Metodologia: dados extraídos da aba <em>Resumo por Negócio v2</em> (uma linha por negócio), com remoção de duplicatas exatas. Uma resposta é contada uma única vez por negócio mesmo quando ele respondeu pelo Formulário e pelo WhatsApp — nesse caso, a média combinada é a média das duas notas. "Elegíveis" considera apenas negócios cuja data de envio da pesquisa já ocorreu (≤ ${hojeStr}); negócios com data futura ainda não entram no cálculo e aparecem na aba Consulta por Cliente como "Aguardando envio". "Respondeu" é definido pela coluna mês_resposta da planilha: se ela tem um mês preenchido, o negócio conta como respondente daquele mês. No funil, a coluna Encaminhados/Elegíveis agrupa por mês de envio da pesquisa (cohort), enquanto as colunas de Respostas agrupam pelo mês de resposta — por isso uma linha pode somar respostas de negócios enviados em outros meses. Escala CES: Very Difficult=1, Difficult=2, Neutral=3, Easy=4, Very Easy=5. Use os filtros de mês e negócio acima para recalcular todos os painéis desta aba.`;
 }
 
 function heatColorFor(pct){
