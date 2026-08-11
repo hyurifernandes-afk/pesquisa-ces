@@ -564,14 +564,22 @@ function computeAggregates(rows){
     };
   });
 
+  // "n" conta todo negócio com mês_resposta (coluna K) preenchido para aquele mês,
+  // independente de ter uma média numérica. A média só é calculada sobre quem tem nota.
   const mesRespMap = {};
+  const mesCountMap = {};
   respondedRows.forEach(r => {
-    if(r.mesRespostaNome && r.media != null){
-      (mesRespMap[r.mesRespostaNome] = mesRespMap[r.mesRespostaNome] || []).push(r.media);
+    if(r.mesRespostaNome){
+      mesCountMap[r.mesRespostaNome] = (mesCountMap[r.mesRespostaNome] || 0) + 1;
+      if(r.media != null){
+        (mesRespMap[r.mesRespostaNome] = mesRespMap[r.mesRespostaNome] || []).push(r.media);
+      }
     }
   });
-  const mediaPorMes = MONTH_ORDER.map(m => mesRespMap[m] ? {
-    mes: m, n: mesRespMap[m].length, media: mesRespMap[m].reduce((a, b) => a + b, 0) / mesRespMap[m].length,
+  const mediaPorMes = MONTH_ORDER.map(m => mesCountMap[m] ? {
+    mes: m,
+    n: mesCountMap[m],
+    media: (mesRespMap[m] && mesRespMap[m].length) ? mesRespMap[m].reduce((a, b) => a + b, 0) / mesRespMap[m].length : null,
   } : null).filter(Boolean);
 
   const formMedias = eligRows.filter(r => r.respForm && r.mediaForm != null).map(r => r.mediaForm);
@@ -679,8 +687,8 @@ function renderGeral(){
   const mediaMesEl = document.getElementById('media-mes-body');
   mediaMesEl.innerHTML = agg.mediaPorMes.length ? agg.mediaPorMes.map(m => `
     <div class="month-avg-row">
-      <div class="month-avg-label">${m.mes}</div>
-      <div class="month-avg-bar"><div class="bar-track"><div class="bar-fill" style="width:${Math.min(m.media/5*100,100)}%;"></div></div></div>
+      <div class="month-avg-label">${m.mes} <span style="color:var(--muted); font-weight:400;">(${m.n})</span></div>
+      <div class="month-avg-bar"><div class="bar-track"><div class="bar-fill" style="width:${m.media != null ? Math.min(m.media/5*100,100) : 0}%;"></div></div></div>
       <div class="month-avg-value">${fmtNum(m.media)}</div>
     </div>
   `).join('') : `<div class="empty-state">Sem respostas para este filtro.</div>`;
